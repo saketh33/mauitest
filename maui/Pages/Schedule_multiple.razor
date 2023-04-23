@@ -1,0 +1,597 @@
+﻿@page "/multischedule"
+
+@using DLMSmaui.Data
+@using DLMSmaui.Models
+@using DLMSmaui.Services
+@inject IAppService AppService;
+@using System.Collections.Generic
+@using Microsoft.AspNetCore.Components.Web
+@inject IJSRuntime jsRuntime;
+@using System.Linq
+
+<style>
+    .topHeaderDiv{
+        display:flex;
+        justify-content:space-around;
+    }
+</style>
+<section>
+    <div id="side-header">
+        <div class="sidenav px-sm-2 px-md-4 text-start">
+            <a href="Jobs" class="fs-5"><img src="images/layout.png" style="width: 28px; height: 28px;" class="me-2">Dashboard</a>
+            <a href="run.html" class="fs-5"><img src="images/dashboard.png" style="width: 28px; height: 28px;" class="me-2">Running Schedule</a>
+            <a href="singleschedule" class="fs-5"><img src="images/gear-green.png" style="width: 28px; height: 28px;" class="me-2">Single Schedule</a>
+            <a href="multischedule" class="fw-bold border fs-5 bg-white border-white" style="color:#3dcd58;"><img src="images/gear-green.png" style="width: 28px; height: 28px;" class="me-2">Multi Schedule</a>
+            <a href="meter.html" class="fs-5"><img src="images/new-tab.png" style="width: 28px; height: 28px;" class="me-2">Auto Schedule</a>
+            <a class="btn btn-primary mx-2 ms-md-0 me-md-4" style="margin-top: 250px;">Get Support</a>
+        </div>
+        <div class="main-content my-4">
+
+
+            <button @onclick="ReloadPage">Reload</button>
+            <EditForm Model="@mutipleschedule" OnValidSubmit="Submit">
+
+                <div class="d-flex flex-row flex-wrap">
+                 <div class="topHeaderDiv"> <h6 class="pe-4 pt-2">Communication Type:</h6>
+                                    <button class="btn btn-primary" type="submit">
+                    <span class="@_spinnerClass" role="status" aria-hidden="true"></span>
+                    Register
+                </button></div>
+                   
+                    <div style="width: 30%;">
+                        <select class="col form-select form-select-sm div-toggle" @bind="@mutipleschedule.ModeOfCommunication" id="communicationtype" required>
+                            @mutipleschedule.ModeOfCommunication = "Direct";
+                            @foreach (var template in templates)
+                            {
+                                <option value=@template>
+                                    <div class="form-check fs-6 ms-5">
+                                        @template
+                                    </div>
+                                </option>
+                            }
+                        </select>
+
+                    </div>
+                    <div class="mb-2">
+                        <a class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#staticBackdrop">Selected parameters </a>
+                    </div>
+                    <div class="modal fade" id="staticBackdrop" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
+                        <div class="modal-dialog">
+                            <div class="modal-content" id="editor">
+                                <div class="modal-header">
+                                    <h1 class="modal-title fs-5" id="staticBackdropLabel">Selection of parameters</h1>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                </div>
+                                <div class="modal-body fs-6">
+                                    <div class="form-check">
+                                        <label>
+                                            <input class="form-check-input" type="checkbox" name="Profile" value="Biling profile" id="flexCheckDefault">
+                                            Biling profile
+                                        </label>
+                                    </div>
+                                    <div class="form-check">
+                                        <label>
+                                            <input class="form-check-input" type="checkbox" name="Profile" value="Daily load profile" id="flexCheckDefault">
+                                            Daily load profile
+                                        </label>
+                                    </div>
+                                    <div class="form-check">
+                                        <label>
+                                            <input class="form-check-input" type="checkbox" name="Profile" value="Instantaneous" id="flexCheckDefault">
+                                            Instantaneous
+                                        </label>
+                                    </div>
+                                    <div class="form-check">
+                                        <label>
+                                            <input class="form-check-input" type="checkbox" name="Profile" value="Power fail related events" id="flexCheckDefault">
+                                            Power fail related events
+                                        </label>
+                                    </div>
+                                    <div class="form-check">
+                                        <label>
+                                            <input class="form-check-input" type="checkbox" name="Profile" value="Voltage related events" id="flexCheckDefault">
+                                            Voltage related events
+                                        </label>
+                                    </div>
+                                    <div class="form-check">
+                                        <label>
+                                            <input class="form-check-input" type="checkbox" name="Profile" value="Current related events" id="flexCheckDefault">
+                                            Current related events
+                                        </label>
+                                    </div>
+                                    <div class="form-check">
+                                        <label>
+                                            <input class="form-check-input" type="checkbox" name="Profile" value=" Other events" id="flexCheckDefault">
+                                            Other events
+                                        </label>
+                                    </div>
+                                    <div class="form-check">
+                                        <label>
+                                            <input class="form-check-input" type="checkbox" name="Profile" value="Non-rolled events" id="flexCheckDefault">
+                                            Non-rolled events
+                                        </label>
+                                    </div>
+                                    <div class="form-check">
+                                        <label>
+                                            <input class="form-check-input" type="checkbox" name="Profile" value="Load profile" id="flexCheckDefault">
+                                            Load profile
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" id="btnSave" onclick="saveProfile()">Update</button>
+                                    <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Cancel</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col">
+                        <p id="demo" class="fs-6 pt-2 mb-2"></p>
+                    </div>
+                    <div class="row pt-1">
+                        <h6 class="col-6 pt-1">Number of Parameter selected </h6>
+                        <div class="col fs-6 pt-2" id="countno"></div>
+                    </div>
+                </div>
+
+                <div class="mb-2">
+                    <a class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#Backdrop">Select Job</a>
+                </div>
+                <div class="modal fade" id="Backdrop" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
+                    <div class="modal-dialog">
+                        <div class="modal-content" id="editor">
+                            <div class="modal-header">
+                                <h1 class="modal-title fs-5" id="staticBackdropLabel">Selection of Job</h1>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body fs-6">
+
+                                <input type="text" @oninput="OnFilterTextChanged" id="myInput" />
+
+                                <select @bind="selectedItem" id="selectedjob" required>
+                                                        
+                                    @foreach (var item in filteredItems)
+                                    {
+                                        <option value="@item.Value">@item.Key</option>
+                                    }
+                                </select>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" id="btnSave" onclick="getSelectedValue()">Update</button>
+                                <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Cancel</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col">
+                    <p id="showselectedjob" class="fs-6 pt-2 mb-2"></p>
+                </div>
+
+                <div class="fs-6 text-start">
+                    @if (!string.IsNullOrEmpty(mutipleschedule.ModeOfCommunication))
+                    {
+                        <div class="mb-2" id="addrowbutton">
+                                <a class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#Addrows" >Add row</a>
+                            </div>
+
+                        @if (mutipleschedule.ModeOfCommunication == "Direct")
+                        {
+
+                            <label for="csvFile">Select a Direct CSV file:</label>
+                            <input type="file" id="csvFile" accept=".csv">
+                            <button type="button" onclick="convertCsvToTable()">Convert to JSON</button>
+
+                            <div id="result">
+
+                            </div>
+
+                            <div id="option1" class="group">
+                                <div class="table-responsive fs-6">
+                                    <table id="DirectTable" class="table border rounded-circle">
+                                        <thead>
+                                        <th scope="col">Meter ID</th>
+                                        <th scope="col">COM Port</th>
+                                        <th scope="col">Parity</th>
+                                        <th scope="col">Baud Rate</th>
+                                        <th scope="col">Password</th>
+                                        <th scope="col">Schedule Type</th>
+                                        <th scope="col">Schedule Time</th>
+                                        <th scope="col">Action</th
+                                        
+                                        </thead>
+                                        <tbody>
+                                            
+                                        </tbody>
+                                    </table>
+
+                                </div>
+                            </div>
+                        }
+
+                        else if (mutipleschedule.ModeOfCommunication == "RS485")
+                                        {
+
+                            <label for="csvFile">Select a RS485 CSV file:</label>
+                            <input type="file" id="csvFile" accept=".csv">
+                            <button type="button" onclick="convertCsvToTable()">Convert to JSON</button>
+
+                            <div id="result"></div>
+                            <div id="option1" class="group">
+                                <div class="table-responsive fs-6">
+                                    <table id="RS485Table" class="table border rounded-circle">
+                                        <thead>
+                                        <th scope="col">Slave ID</th>
+                                        <th scope="col">COM Port</th>
+                                        <th scope="col">Parity</th>
+                                        <th scope="col">Baud Rate</th>
+                                        <th scope="col">Password</th>
+                                        <th scope="col">Schedule Type</th>
+                                        <th scope="col">Schedule Time</th>
+                                        <th scope="col">Action</th>
+                                                   </thead>
+                                        <tbody>
+                                            
+                                        </tbody>
+                                    </table>
+
+                                </div>
+                            </div>
+                                        }
+                        else if ( mutipleschedule.ModeOfCommunication == "SerialTCP" )
+                        {
+                            <label for="csvFile">Select a SerialTCP CSV file:</label>
+                            <input type="file" id="csvFile" accept=".csv">
+                            <button type="button" onclick="convertCsvToTable()">Convert to JSON</button>
+                            <div id="result"></div>
+                            <div id="option1" class="group">
+
+                                <div class="table-responsive fs-6">
+                                    <table id="SerialTCPTable" class="table border rounded-circle">
+                                        <thead>
+
+                                                <th scope="col">Server IP</th>
+                                                <th scope="col">Server Port</th>
+                                                <th scope="col">Password</th>
+                                                <th scope="col">Schedule Type</th>
+                                                <th scope="col">Schedule Time</th>
+                                                <th scope="col">Action</th>
+
+                                        </thead>
+                                        <tbody>
+                                            
+                                        </tbody>
+                                    </table>
+
+                                </div>
+                            </div>
+                        }
+                        else if (mutipleschedule.ModeOfCommunication == "TCPIP")
+                                            {
+                                <label for="csvFile">Select a TcpIP CSV file:</label>
+                            <input type="file" id="csvFile" accept=".csv">
+                            <button type="button" onclick="convertCsvToTable()">Convert to JSON</button>
+                            <div id="result"></div>
+                                <div id="option1" class="group">
+                                <div class="table-responsive fs-6">
+                                    <table id="TcpipTable" class="table border rounded-circle">
+                                        <thead>
+
+                                                <th scope="col">Server IP</th>
+                                                <th scope="col">Client IP</th>
+                                                <th scope="col">Server Port</th>
+                                                <th scope="col">Password</th>
+                                                <th scope="col">Schedule Type</th>
+                                                <th scope="col">Schedule Time</th>
+                                                <th scope="col">Action</th>
+                                                                                        </thead>
+                                        <tbody>
+                                            
+                                        </tbody>
+                                    </table>
+
+                                </div>
+                            </div>
+                                            }
+
+                    }
+                </div>
+
+
+            </EditForm>
+            
+            <div class="modal fade" id="Addrows" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
+                <div class="modal-dialog">
+                    <div class="modal-content" id="editor">
+
+                        <div class="modal-header">
+                            <h1 class="modal-title fs-5" id="staticBackdropLabel">Add Meter Details</h1>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+
+                        <div class="modal-body fs-6">
+
+                            <form id="addRowForm">
+
+                                @if (mutipleschedule.ModeOfCommunication == "Direct" || mutipleschedule.ModeOfCommunication == "RS485")
+                                {
+                                    @if ( mutipleschedule.ModeOfCommunication == "Direct")
+                                    {
+                                        <label for="nameInput">Mater ID:</label>
+                                        <input type="text" id="meteridInput"><br>
+                                    }else if ( mutipleschedule.ModeOfCommunication == "RS485"){
+                                        <label for="nameInput">Slave ID:</label>
+                                        <input type="text" id="slaveidInput"><br>
+                                    }                                  
+                                    <label for="emailInput">COM Port</label>
+                                    <input type="email" id="comportInput"><br>
+                                    <label for="emailInput">Parity</label>
+                                    <input type="email" id="parityInput"><br>
+                                    <label for="emailInput">Baud Rate</label>
+                                    <input type="email" id="baudrateInput"><br>
+                                    <label for="emailInput">Password</label>
+                                    <input type="email" id="PasswordInput"><br>
+                                    <select id="options" name="options" onchange="showHideDivs()">
+                                        <option selected hidden>Select</option>
+                                        <option value="Recurring" >Recurring</option>
+                                        <option value="Daily">Daily</option>
+                                        <option value="Datetime">Datetime</option>
+                                    </select>                              
+                                    <input type="number" id="div1" placeholder="Enter Minutes" style="display: none;">
+                                    <input type="time" id="div2" style="display: none;">
+                                    <input type="datetime-local" id="div3" style="display: none;">
+                                    <input type="text" id="rowid" style="display: none;">
+                                }
+                                else if (mutipleschedule.ModeOfCommunication == "SerialTCP" || mutipleschedule.ModeOfCommunication == "TCPIP")
+                                {
+                                    <label for="emailInput">Server IP</label>
+                                    <input type="text" id="ServerIPInput"><br>
+                                    @if (mutipleschedule.ModeOfCommunication == "TCPIP")
+                                    {
+                                        <label for="nameInput">Client IP</label>
+                                        <input type="text" id="ClientIPInput"><br>
+                                    }
+                                    <label for="emailInput">Server Port</label>
+                                    <input type="email" id="ServerPortInput"><br>
+                                    <label for="emailInput">Password</label>
+                                    <input type="email" id="PasswordInput"><br>
+                                    <select id="options" name="options" onchange="showHideDivs()">
+                                        <option selected hidden>Select</option>
+                                        <option value="Recurring">Recurring</option>
+                                        <option value="Daily">Daily</option>
+                                        <option value="Datetime">Datetime</option>
+                                    </select>
+
+                                    <br>
+                                    <input type="number" id="div1" placeholder="Enter Minutes" style="display: none;">
+                                    <input type="time" id="div2" style="display: none;">
+                                    <input type="datetime-local" id="div3" style="display: none;">
+                                    <input type="text" id="rowid" style="display: none;">
+                                }
+
+                            </form>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" id="btnSave" onclick="addRow()">Add row</button>
+                            <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Cancel</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal fade" id="Editrows" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
+                <div class="modal-dialog">
+                    <div class="modal-content" id="editor">
+                        <div class="modal-header">
+                            <h1 class="modal-title fs-5" id="staticBackdropLabel">Selection of parameters</h1>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body fs-6">
+                            <form id="editRowForm">
+
+                                @if (mutipleschedule.ModeOfCommunication == "Direct" || mutipleschedule.ModeOfCommunication == "RS485")
+                                {
+                                    @if ( mutipleschedule.ModeOfCommunication == "Direct")
+                                    {
+                                        <label for="nameInput">Mater ID:</label>
+                                        <input type="text" id="editmeteridInput"><br>
+                                    }else if ( mutipleschedule.ModeOfCommunication == "RS485"){
+                                        <label for="nameInput">Slave ID:</label>
+                                        <input type="text" id="editslaveidInput"><br>
+                                    }                                  
+                                    <label for="emailInput">COM Port</label>
+                                    <input type="email" id="editcomportInput"><br>
+                                    <label for="emailInput">Parity</label>
+                                    <input type="email" id="editparityInput"><br>
+                                    <label for="emailInput">Baud Rate</label>
+                                    <input type="email" id="editbaudrateInput"><br>  
+                                    <label for="emailInput">Password</label>
+                                    <input type="email" id="editPasswordInput"><br>
+                                    <select id="editoptions" name="options" onchange="editshowHideDivs()">
+                                        <option selected hidden>Select</option>
+                                        <option value="Recurring" >Recurring</option>
+                                        <option value="Daily">Daily</option>
+                                        <option value="Datetime">Datetime</option>
+                                    </select>                              
+                                    <input type="number" id="editdiv1" placeholder="Enter Minutes" style="display: none;">
+                                    <input type="time" id="editdiv2" style="display: none;">
+                                    <input type="datetime-local" id="editdiv3" style="display: none;">
+                                }
+                                else if (mutipleschedule.ModeOfCommunication == "SerialTCP" || mutipleschedule.ModeOfCommunication == "TCPIP")
+                                {
+                                    <label for="emailInput">Server IP</label>
+                                    <input type="text" id="editServerIPInput"><br>
+                                    @if (mutipleschedule.ModeOfCommunication == "TCPIP")
+                                    {
+                                        <label for="nameInput">Client IP</label>
+                                        <input type="text" id="editClientIPInput"><br>
+                                    }
+                                    <label for="emailInput">Server Port</label>
+                                    <input type="email" id="editServerPortInput"><br>
+                                    <label for="emailInput">Password</label>
+                                    <input type="email" id="editPasswordInput"><br>
+                                    <select id="editoptions" name="options" onchange="editshowHideDivs()">
+                                        <option selected hidden>Select</option>
+                                        <option value="Recurring">Recurring</option>
+                                        <option value="Daily">Daily</option>
+                                        <option value="Datetime">Datetime</option>
+                                    </select>
+
+                                    <br>
+                                    <input type="number" id="editdiv1" placeholder="Enter Minutes" style="display: none;">
+                                    <input type="time" id="editdiv2" style="display: none;">
+                                    <input type="datetime-local" id="editdiv3" style="display: none;">
+                                }
+
+                            </form>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" id="btnSave" onclick="saveEditedRow()">save row</button>
+                            <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Cancel</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+@code {
+    List<string> templates = new List<string>() { "Direct", "SerialTCP", "TCPIP", "RS485" };
+    List<string> times = new List<string>() { "Recurring", "Daily", "Datetime" };
+    MultipleSchedule mutipleschedule = new MultipleSchedule();
+    private string _spinnerClass = "";
+    private string username = @Setting.UserBasicDetail.Email;
+    private async void Submit()
+    {
+        var outputValue = await jsRuntime.InvokeAsync<string>("saveProfile");
+        if (outputValue!= "")
+        {
+            var jobname = await jsRuntime.InvokeAsync<string>("getSelectedValue");
+            string tableId = string.Empty;
+            string CsvtableId = string.Empty;
+            int ignoredColumnIndex = 0;
+            if (mutipleschedule.ModeOfCommunication =="Direct"){
+                tableId = "DirectTable";
+                CsvtableId = "DirectCSVTable";
+                ignoredColumnIndex = 7;
+            }else if (mutipleschedule.ModeOfCommunication =="SerialTCP"){
+                tableId = "SerialTCPTable";
+                CsvtableId = "SerialTCPCSVTable";
+                ignoredColumnIndex = 5;
+            }else if (mutipleschedule.ModeOfCommunication =="TCPIP"){
+                tableId = "TcpipTable";
+                CsvtableId = "TcpipCSVTable";
+                ignoredColumnIndex = 6;
+            }else if (mutipleschedule.ModeOfCommunication =="RS485"){
+                tableId = "RS485Table";
+                CsvtableId = "RS485CSVTable";
+                ignoredColumnIndex = 7;
+            }
+
+            var checktable = await jsRuntime.InvokeAsync<string>("checkingtable",tableId);
+            var CsvTable = await jsRuntime.InvokeAsync<string>("checkingtable",CsvtableId);
+
+            if (checktable == "norows" && CsvTable == "notable")
+            {
+                await App.Current.MainPage.DisplayAlert("Oops", "ADD aleast one row", "OK");
+            }
+            else if (checktable == "yesrows")
+            {
+                var tablejs = await jsRuntime.InvokeAsync<string>("converttabletojson", tableId, ignoredColumnIndex);
+                mutipleschedule.UserName = username;
+                mutipleschedule.Profile = outputValue;
+                mutipleschedule.SJobName = jobname;
+                mutipleschedule.jsontable = tablejs;
+                _spinnerClass = "spinner-border spinner-border-sm";
+                var response = await AppService.Registermultipleschedule(mutipleschedule);
+                if (response.IsSuccess)
+                {
+                    await App.Current.MainPage.DisplayAlert("Success", "Scheduled sucesfully", "OK");
+                }
+                else
+                {
+                    await App.Current.MainPage.DisplayAlert("Oops", response.ErrorMessage, "OK");
+                }
+                _spinnerClass = "";
+                this.StateHasChanged();
+            }
+            else if (checktable == "norows" && CsvTable == "yesrows")
+            {
+                var tablejs = await jsRuntime.InvokeAsync<string>("converttabletojson", CsvtableId, ignoredColumnIndex);
+                mutipleschedule.UserName = username;
+                mutipleschedule.Profile = outputValue;
+                mutipleschedule.SJobName = jobname;
+                mutipleschedule.jsontable = tablejs;
+                _spinnerClass = "spinner-border spinner-border-sm";
+                var response = await AppService.Registermultipleschedule(mutipleschedule);
+                if (response.IsSuccess)
+                {
+                    await App.Current.MainPage.DisplayAlert("Success", "Scheduled sucesfully", "OK");
+                }
+                else
+                {
+                    await App.Current.MainPage.DisplayAlert("Oops", response.ErrorMessage, "OK");
+                }
+                _spinnerClass = "";
+                this.StateHasChanged();
+            }
+        }
+
+        else
+        {
+            await App.Current.MainPage.DisplayAlert("Oops", "Select atleast one paramter", "OK");
+        }   
+    }
+
+    [Inject]
+    NavigationManager NavigationManager { get; set; }
+
+    private void ReloadPage()
+    {
+        NavigationManager.NavigateTo(NavigationManager.Uri, forceLoad: true);
+    }
+
+    private string selectedOption = "";
+
+    List<KeyValuePair<string, string>> filteredItems = new List<KeyValuePair<string, string>>();
+    List<KeyValuePair<string, string>> _items = new List<KeyValuePair<string, string>>();
+
+    string selectedItem;
+
+    private List<FetchJobModel> jobs;
+
+    protected override async Task OnInitializedAsync()
+    {
+        jobs = await AppService.GetAllJobs();
+        filteredItems.Clear();
+        foreach (var i in jobs)
+        {
+            
+            _items.Add(new KeyValuePair<string, string>(i.JobName,i.JobID));
+
+        }
+        filteredItems = _items;
+
+    }
+
+    private void OnFilterTextChanged(ChangeEventArgs e)
+    {
+        string filterText = e.Value.ToString();
+
+        if (!string.IsNullOrEmpty(filterText))
+        {
+            filteredItems = _items.Where(x => x.Key.Contains(filterText)).ToList();
+        }
+        else
+        {
+            filteredItems = _items;
+        }
+    }
+}
+
+
+
+
+
+

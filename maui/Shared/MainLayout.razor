@@ -1,0 +1,95 @@
+﻿@using DLMSmaui.Models
+@inherits LayoutComponentBase
+@inject NavigationManager NavManager;
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+<style>
+    .reloadBtn{
+        all:unset;
+    }
+</style>
+<div class="page">
+    @* This is a Razor comment to link the same navbar to all pages *@
+
+    <!--<div class="sidebar">
+    @if(Setting.UserBasicDetail!=null)
+    {
+    <NavMenu />
+    }
+    </div>-->
+
+    <main>
+        <section class="shadow-sm sticky-top bg-white">
+            <div id="top-header" class="d-flex align-items-center justify-content-center" style="height: 76px;">
+                <nav class="navbar navbar-expand-lg navbar-light bg-white flex-fill">
+                    <div class="container-fluid">
+                        <button @onclick="ReloadPage" class="reloadBtn mx-2">
+                            <i class="fa-solid fa-arrows-rotate"></i>
+                        </button>
+                        
+                        <img src="images/logo_se_green_rgb_screen.png" id="logo" width="150px" height="50px">
+                        <h4 class="ms-4 me-md-auto tog-1">DLMS Scheduler</h4>
+                        <div class="offcanvas offcanvas-start" tabindex="-1" id="navbarSupportedContent" style="background-color: #3dcd58;">
+                            <ul class="navbar-nav mb-2 mb-lg-0 ms-lg-auto tog ps-sm-2 ps-md-4">
+                                <li class="nav-item">
+                                    <button type="button" class="float-end m-2 btn-close text-reset" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+                                </li>
+                                <li style="margin-top:50px;" class="mb-2"><a href="index.html" class="fs-4 ms-3 mb-3 text-decoration-none text-white"><img src="images/layout.png" style="width: 20px; height: 20px;" class="me-2">Dashboard</a></li>
+                                <li class="mb-2"><a href="run.html" class="fs-4 ms-3 mb-3 text-decoration-none text-white"><img src="images/dashboard.png" style="width: 20px; height: 20px;" class="me-2">Running Schedule</a></li>
+                                <li class="mb-2"><a href="sche.html" class="fs-4 ms-3 mb-3 text-decoration-none text-white"><img src="images/gear.png" style="width: 20px; height: 20px;" class="me-2">Schedule config</a></li>
+                                <li class="mb-2"><a href="" class="fs-4 ms-3 mb-3 text-decoration-none text-white"><img src="images/new-tab.png" style="width: 20px; height: 20px;" class="me-2">Auto Schedule</a></li>
+                            </ul>
+                        </div>
+                        <div class="dropdown ms-auto me-4">
+                            <a href="#" class="d-flex align-items-center text-white text-decoration-none dropdown-toggle mx-2" id="dropdownUser1" data-bs-toggle="dropdown" aria-expanded="false">
+                                <img src="https://github.com/mdo.png" alt="hugenerd" width="50" height="50" class="rounded-circle">
+                            </a>
+                            <div class="dropdown-menu" aria-labelledby="navbarDropdown">
+                                <li><a class="dropdown-item" href="#">New project...</a></li>
+                                <li><a class="dropdown-item" href="#">Settings</a></li>
+                                <li><a class="dropdown-item" href="#">Profile</a></li>
+                                <li>
+                                    <hr class="dropdown-divider">
+                                </li>
+                                <li><a class="dropdown-item" @onclick="SignOut">Sign out</a></li>
+                            </div>
+                        </div>
+                        <button class="navbar-toggler" type="button" data-bs-toggle="offcanvas" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+                            <span class="navbar-toggler-icon"></span>
+                        </button>
+                    </div>
+                </nav>
+            </div>
+        </section>
+
+        <article class="content px-4">
+            @Body
+        </article>
+    </main>
+</div>
+
+@code {
+    [Inject]
+    NavigationManager NavigationManager { get; set; }
+
+    private bool collapseNavMenu = true;
+
+    private string NavMenuCssClass => collapseNavMenu ? "collapse" : null;
+
+    private void ToggleNavMenu()
+    {
+        collapseNavMenu = !collapseNavMenu;
+    }
+
+    private void SignOut()
+    {
+        SecureStorage.RemoveAll();
+        Setting.UserBasicDetail = null; // Clearning all Details of UserBasicDetail Model
+        NavManager.NavigateTo("/login"); // Navgating to Login page
+    }
+    private void ReloadPage()
+    {
+        NavigationManager.NavigateTo(NavigationManager.Uri, forceLoad: true);
+    }
+
+  
+}

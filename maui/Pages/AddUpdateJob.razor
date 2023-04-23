@@ -1,0 +1,226 @@
+﻿@page "/updateJob/{JobID}"
+@using DLMSmaui.Models
+@using DLMSmaui.Services
+@inject IAppService AppService;
+@inject IJSRuntime jsRuntime;
+@using System.Net.Http.Json;
+@using System.Net.Http;
+@using System.Text.Json;
+@using System.Threading.Tasks;
+@using DLMSmaui.Models;
+@using Newtonsoft.Json;
+@using System;
+@using System.Collections.Generic;
+@using System.Linq;
+@using System.Text;
+@using System.Threading.Tasks;
+@using System.Timers;
+<section>
+
+    <div id="side-header">
+        <div class="sidenav px-sm-2 px-md-4 text-start">
+            <a href="Jobs" class="fs-5"><img src="images/layout.png" style="width: 28px; height: 28px;" class="me-2">Dashboard</a>
+            <a href="Jobs" class="fw-bold border fs-5 bg-white border-white" style="color:#3dcd58;"><img style="width: 28px; height: 28px;" class="me-2"  src="images/portfolio.png">Jobs</a>
+            <a href="Jobs" class="fs-5"><img src="images/dashboard.png" style="width: 28px; height: 28px;" class="me-2">Running Schedule</a>
+            <a href="singleschedule" class="fs-5"><img src="images/date.png" style="width: 28px; height: 28px;" class="me-2">Single Schedule</a>
+            <a href="multischedule" class="fs-5"><img src="images/gear.png" style="width: 28px; height: 28px;" class="me-2">Multi Schedule</a>
+            <a href="Jobs" class="fs-5"><img src="images/new-tab.png" style="width: 28px; height: 28px;" class="me-2">Auto Schedule</a>
+            <a class="btn btn-primary mx-2 ms-md-0 me-md-4" style="margin-top: 250px;">Get Support</a>
+        </div>
+
+        <button @onclick="ReloadPage">Reload</button>
+        <p>you job id is @JobID</p>
+        <div class="form-group">
+            <label>First Name</label>
+            <input @bind="jobname" class="form-control" placeholder="First Name">
+        </div>
+        
+
+        <button @onclick="AddUpdateJobDetails" type="submit" class="mt-2 btn btn-primary">Submit</button>
+
+        <div id="result"></div>
+        <div id="mydiv"></div>
+
+           
+    </div>
+</section>
+
+@code {
+    JobModel jobmodel = new JobModel();
+    Bulkdata bulkmodel = new Bulkdata();
+    private string _spinnerClass = "";
+    private string username = @Setting.UserBasicDetail.Email;
+
+    private async void Submit()
+    {
+        jobmodel.UserName = username;
+        _spinnerClass = "spinner-border spinner-border-sm";
+
+        var response = await AppService.RegisterJob(jobmodel);
+        if (response.IsSuccess)
+        {
+            await App.Current.MainPage.DisplayAlert("Success", "Job Registered.", "OK");
+        }
+        else
+        {
+            await App.Current.MainPage.DisplayAlert("Oops", response.ErrorMessage, "OK");
+        }
+        _spinnerClass = "";
+        this.StateHasChanged();
+
+    }
+
+    [Inject]
+    NavigationManager NavigationManager { get; set; }
+
+    private void ReloadPage()
+    {
+        NavigationManager.NavigateTo(NavigationManager.Uri, forceLoad: true);
+
+    }
+
+    private async Task PassOutputValueToModel()
+    {
+        var outputValue = await jsRuntime.InvokeAsync<string>("convertCsvToJson");
+        bulkmodel.UserName = username;
+        bulkmodel.Jsondata= outputValue;
+    }
+
+    private List<FetchJobModel> jobs;
+
+    protected override async Task OnInitializedAsync()
+    {
+        jobs = await AppService.GetAllJobs();
+        timer = new Timer(10000);
+
+        // Hook up the Elapsed event handler
+        timer.Elapsed += new ElapsedEventHandler(OnTimerElapsed);
+
+        // Start the timer
+        timer.Start();
+
+    }
+
+    private HttpClient httpClient = new HttpClient();
+
+    private string StatusMessage = "";
+    private Timer timer;
+
+    //public void JobService()
+    //{
+    //    // Create a new timer that fires every 3 seconds
+    //    timer = new Timer(3000);
+
+    //    // Hook up the Elapsed event handler
+    //    timer.Elapsed += new ElapsedEventHandler(OnTimerElapsed);
+
+    //    // Start the timer
+    //    timer.Start();
+    //}
+
+    private async void OnTimerElapsed(object sender, ElapsedEventArgs e)
+    {
+        // Call the GetData() method to retrieve the data
+
+        await InvokeAsync(() => {
+            GetData();
+            StateHasChanged();
+        });
+    }
+
+    private async Task GetData()
+    {
+        try
+        {
+            // Make the AJAX call to retrieve the data
+            var response = await httpClient.GetAsync("https://localhost:7288/Jobs/GetAllJobs");
+
+            if (response.IsSuccessStatusCode)
+            {
+                string contentStr = await response.Content.ReadAsStringAsync();
+                var mainResponse = JsonConvert.DeserializeObject<MainResponse>(contentStr);
+                if (mainResponse.IsSuccess)
+                {
+                    jobs = JsonConvert.DeserializeObject<List<FetchJobModel>>(mainResponse.Content.ToString());
+                }
+
+                // Trigger a re-render of the component to display the data
+                this.StateHasChanged();
+            }
+            else
+            {
+                StatusMessage = $"Error: {response.StatusCode}";
+            }
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Error: {ex.Message}";
+        }
+    }
+
+
+    public string Filter { get; set; }
+    public bool IsVisible(FetchJobModel job)
+    {
+        if (string.IsNullOrEmpty(Filter))
+            return true;
+
+        if (job.JobName.Contains(Filter, StringComparison.OrdinalIgnoreCase))
+            return true;
+
+        if (job.JobName.ToString().StartsWith(Filter) ||job.JobName.ToString().StartsWith(Filter))
+            return true;
+
+        return false;
+    }
+
+    [Parameter]
+    public string JobID { get; set; }
+
+
+    private string jobname;
+    private string jobid;
+
+    private async void AddUpdateJobDetails()
+    {
+        jobmodel.UserName = username;
+        var addUpdateRequest = new AddUpdateJobRequest
+            {
+                JobName = jobname,
+                JobID = jobid,
+            };
+
+
+        if (Int16.Parse(JobID) > 0)
+        {
+            var response = await AppService.UpdateJob(addUpdateRequest);
+            if (response.IsSuccess)
+            {
+                await App.Current.MainPage.DisplayAlert("Record Updated", "Record Updated Successfully", "OK");
+            }
+            else
+            {
+                await App.Current.MainPage.DisplayAlert("Oops", response.ErrorMessage, "OK");
+            }
+        }
+        else
+        {
+            var response = await AppService.AddJob(addUpdateRequest);
+
+            if (response.IsSuccess)
+            {
+                jobname = jobid = string.Empty;
+                this.StateHasChanged();
+
+                await App.Current.MainPage.DisplayAlert("Record Added", "Record Added Successfully", "OK");
+            }
+            else
+            {
+                await App.Current.MainPage.DisplayAlert("Oops", response.ErrorMessage, "OK");
+            }
+        }
+
+
+    }
+    
+}

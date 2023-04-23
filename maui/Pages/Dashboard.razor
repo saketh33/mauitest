@@ -1,0 +1,328 @@
+﻿@page "/Dash"
+@using DLMSmaui.Models
+@using DLMSmaui.Services
+@inject IAppService AppService;
+@inject IJSRuntime jsRuntime;
+@using System.Net.Http.Json;
+@using System.Net.Http;
+@using System.Text.Json;
+@using System.Threading.Tasks;
+@using DLMSmaui.Models;
+@using Newtonsoft.Json;
+@using System;
+@using System.Collections.Generic;
+@using System.Linq;
+@using System.Text;
+@using System.Threading.Tasks;
+@using System.Timers;
+@inject IJSRuntime JSRuntime
+@using System.Threading.Tasks;
+@using Microsoft.AspNetCore.Components;
+@using Microsoft.JSInterop;
+@using ChartJs.Blazor.Common.Enums;
+@using ChartJs.Blazor.Common.Axes;
+@using ChartJs.Blazor.Common.Models;
+@using ChartJs.Blazor.LineChart;
+
+
+<section>
+    <div id="side-header">
+        <div class="sidenav px-sm-2 px-md-4 text-start">
+            <a href="Jobs" class="fs-5"><img src="images/layout.png" style="width: 28px; height: 28px;" class="me-2">Dashboard</a>
+            <a href="Jobs" class="fw-bold border fs-5 bg-white border-white" style="color:#3dcd58;"><img style="width: 28px; height: 28px;" class="me-2" src="images/portfolio.png">Jobs</a>
+            <a href="Jobs" class="fs-5"><img src="images/dashboard.png" style="width: 28px; height: 28px;" class="me-2">Running Schedule</a>
+            <a href="singleschedule" class="fs-5"><img src="images/date.png" style="width: 28px; height: 28px;" class="me-2">Single Schedule</a>
+            <a href="multischedule" class="fs-5"><img src="images/gear.png" style="width: 28px; height: 28px;" class="me-2">Multi Schedule</a>
+            <a href="Jobs" class="fs-5"><img src="images/new-tab.png" style="width: 28px; height: 28px;" class="me-2">Auto Schedule</a>
+            <a class="btn btn-primary mx-2 ms-md-0 me-md-4" style="margin-top: 250px;">Get Support</a>
+        </div>
+
+        <button @onclick="ReloadPage">Reload</button>
+
+        <section>
+            <div id="side-header">
+                <div class="sidenav px-sm-2 px-md-4 text-start">
+                    <a href="index.html" class="fw-bold border bg-white fs-5 border-white" style="color:#3dcd58;"><img src="images/layout-green.png" style="width: 28px; height: 28px;" class="me-2">Dashboard</a>
+                    <a href="run.html" class="fs-5"><img src="images/dashboard.png" style="width: 28px; height: 28px;" class="me-2">Running Schedule</a>
+                    <a href="sche.html" class="fs-5"><img src="images/gear.png" style="width: 28px; height: 28px;" class="me-2">Schedule config</a>
+                    <a href="meter.html" class="fs-5"><img src="images/new-tab.png" style="width: 28px; height: 28px;" class="me-2">Auto Schedule</a>
+                    <a class="btn btn-primary mx-2 ms-md-0 me-md-4" style="margin-top: 250px;">Get Support</a>
+                </div>
+                <div class="main-content my-5">
+                    <div class="container-fluid text-start">
+                        <h4>Total Number of meters</h4>
+                        <div class="row fs-5">
+                            <div class="col-md-3 border my-2 m-md-4 py-2" style="background-color: #ced4da;"><img src="images/scheduled.png" style="width: 26px; height: 26px;" class="me-2">Scheduled: 15000</div>
+                            <div class="col-md-3 border my-2 m-md-4 py-2" style="background-color: #ced4da;"><img src="images/successful.png" style="width: 26px; height: 26px;" class="me-2">Successful: 20000</div>
+                            <div class="col-md-3 border my-2 m-md-4 py-2" style="background-color: #ced4da;"><img src="images/failed.png" style="width: 26px; height: 26px;" class="me-2">Failed: 1000</div>
+                        </div>
+                        <div class="row my-3">
+                            <div class="col-md-6 text-center">
+                                <h5 class="pb-4">Total number of meter read yearly:</h5>
+                                <canvas id="myChart1" class="mx-auto" style="width:100%;max-width:800px"></canvas>
+                            </div>
+                            <div class="col-md-6 text-center">
+                                <h5 class="pb-4">Total number of meter schedyled this month:</h5>
+                                <canvas id="myChart2" class="mx-auto" style="width:100%;max-width:800px"></canvas>
+                            </div>
+                        </div>
+                        <div class="row my-5 text-center">
+                            <h5 class="pb-4">Total number of meter read yearly:</h5>
+                            <canvas id="myChart3" class="mx-auto" style="width:100%;max-width:800px"></canvas>
+                        </div>
+                        <div class="row my-5 text-center">
+                            <h5 class="pb-4">Total number of meter read yearly:</h5>
+                            <canvas id="myChart4" class="mx-auto" style="width:100%;max-width:800px"></canvas>
+                        </div>
+
+                        <div class="chart-container">
+                            <canvas id="myChart"></canvas>
+
+                            <div id="myPlot" style="width:100%;max-width:700px"></div>
+                        </div>
+
+                        <canvas id="myChart" width="400" height="400"></canvas>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+</section>
+
+@code {
+    JobModel jobmodel = new JobModel();
+    Bulkdata bulkmodel = new Bulkdata();
+    private string _spinnerClass = "";
+    private string username = @Setting.UserBasicDetail.Email;
+
+    //private async void Submit()
+    //{
+    //    jobmodel.UserName = username;
+    //    _spinnerClass = "spinner-border spinner-border-sm";
+
+    //    var response = await AppService.RegisterJob(jobmodel);
+    //    if (response.IsSuccess)
+    //    {
+    //        await App.Current.MainPage.DisplayAlert("Success", "Job Registered.", "OK");
+    //    }
+    //    else
+    //    {
+    //        await App.Current.MainPage.DisplayAlert("Oops", response.ErrorMessage, "OK");
+    //    }
+    //    _spinnerClass = "";
+    //    this.StateHasChanged();
+
+    //}
+
+    [Inject]
+    NavigationManager NavigationManager { get; set; }
+
+    private void ReloadPage()
+    {
+        NavigationManager.NavigateTo(NavigationManager.Uri, forceLoad: true);
+
+    }
+
+    private async Task PassOutputValueToModel()
+    {
+        var outputValue = await jsRuntime.InvokeAsync<string>("convertCsvToJson");
+        bulkmodel.UserName = username;
+        bulkmodel.Jsondata = outputValue;
+    }
+
+    private List<FetchJobModel> jobs;
+
+    protected override async Task OnInitializedAsync()
+    {
+        jobs = await AppService.GetAllJobs();
+        timer = new Timer(10000);
+
+        // Hook up the Elapsed event handler
+        timer.Elapsed += new ElapsedEventHandler(OnTimerElapsed);
+
+        // Start the timer
+        timer.Start();
+
+    }
+
+    private HttpClient httpClient = new HttpClient();
+
+    private string StatusMessage = "";
+    private Timer timer;
+
+    //public void JobService()
+    //{
+    //    // Create a new timer that fires every 3 seconds
+    //    timer = new Timer(3000);
+
+    //    // Hook up the Elapsed event handler
+    //    timer.Elapsed += new ElapsedEventHandler(OnTimerElapsed);
+
+    //    // Start the timer
+    //    timer.Start();
+    //}
+
+    private async void OnTimerElapsed(object sender, ElapsedEventArgs e)
+    {
+        // Call the GetData() method to retrieve the data
+
+        await InvokeAsync(() =>
+        {
+            GetData();
+            StateHasChanged();
+        });
+    }
+
+    private async Task GetData()
+    {
+        try
+        {
+            // Make the AJAX call to retrieve the data
+            var response = await httpClient.GetAsync("https://localhost:7288/Jobs/GetAllJobs");
+
+            if (response.IsSuccessStatusCode)
+            {
+                string contentStr = await response.Content.ReadAsStringAsync();
+                var mainResponse = JsonConvert.DeserializeObject<MainResponse>(contentStr);
+                if (mainResponse.IsSuccess)
+                {
+                    jobs = JsonConvert.DeserializeObject<List<FetchJobModel>>(mainResponse.Content.ToString());
+                }
+
+                // Trigger a re-render of the component to display the data
+                this.StateHasChanged();
+            }
+            else
+            {
+                StatusMessage = $"Error: {response.StatusCode}";
+            }
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Error: {ex.Message}";
+        }
+    }
+
+
+    public string Filter { get; set; }
+    public bool IsVisible(FetchJobModel job)
+    {
+        if (string.IsNullOrEmpty(Filter))
+            return true;
+
+        if (job.JobName.Contains(Filter, StringComparison.OrdinalIgnoreCase))
+            return true;
+
+        if (job.JobName.ToString().StartsWith(Filter) || job.JobName.ToString().StartsWith(Filter))
+            return true;
+
+        return false;
+    }
+
+
+    private async void DisplayOption(FetchJobModel job)
+    {
+
+        var response = await App.Current.MainPage.DisplayActionSheet("Select Option", "Close", null, "View Schedules", "Delete Student", "Single Schedule", "Mutiple Schedule");
+
+        if (response == "View Schedules")
+        {
+            NavigationManager.NavigateTo($"jobdetails/{job.JobID}");
+        }
+        else if (response == "Single Schedule")
+        {
+            NavigationManager.NavigateTo($"singleschedle/{job.JobID}");
+        }
+        else if (response == "Mutiple Schedule")
+        {
+            NavigationManager.NavigateTo($"multipleschedule/{job.JobID}");
+        }
+
+        else if (response == "Delete Student")
+        {
+            var deleteResponse = await AppService.DeleteJob(job.JobID);
+
+            if (deleteResponse.IsSuccess)
+            {
+                await OnInitializedAsync();
+                this.StateHasChanged();
+                await App.Current.MainPage.DisplayAlert("Success", "Deleted sucessfully", "OK");
+            }
+            else
+            {
+                await App.Current.MainPage.DisplayAlert("Oops", deleteResponse.ErrorMessage, "OK");
+            }
+        }
+    }
+
+
+    public int PageSize = 10;
+    public int CurrentPage = 1;
+
+
+    private IEnumerable<FetchJobModel> GetCurrentPage()
+    {
+        return jobs.Skip((CurrentPage - 1) * PageSize).Take(PageSize);
+    }
+
+    private int TotalPages()
+    {
+        return (int)Math.Ceiling((double)jobs.Count / PageSize);
+    }
+
+    private void GoToPage(int page)
+    {
+        if (page >= 1 && page <= TotalPages())
+        {
+            CurrentPage = page;
+        }
+    }
+
+    private async void Addjobs()
+    {
+        var jobname = await App.Current.MainPage.DisplayPromptAsync("Question 2", "What's 5 + 5?");
+        jobmodel.UserName = username;
+        jobmodel.JobName = jobname;
+        _spinnerClass = "spinner-border spinner-border-sm";
+
+        var response = await AppService.RegisterJob(jobmodel);
+        if (response.IsSuccess)
+        {
+            await App.Current.MainPage.DisplayAlert("Success", "Job Registered.", "OK");
+        }
+        else
+        {
+            await App.Current.MainPage.DisplayAlert("Oops", response.ErrorMessage, "OK");
+        }
+        _spinnerClass = "";
+        this.StateHasChanged();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await JSRuntime.InvokeVoidAsync("ChartJsInterop.init", "myChart", chartData);
+        }
+    }
+
+    private readonly ChartData chartData = new()
+        {
+            Labels = new[] { "January", "February", "March", "April", "May", "June", "July" },
+            Data = new[] { 65, 59, 80, 81, 56, 55, 40 },
+            Type = ChartType.Line,
+            Options = new()
+            {
+                Title = new()
+                {
+                    Text = "My Chart",
+                    Display = true
+                },
+                Scales = new()
+                {
+                    YAxes = new[] { new Axis { Display = true } }
+                }
+            }
+        };
+
+}

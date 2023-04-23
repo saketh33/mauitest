@@ -1,0 +1,297 @@
+﻿@page "/Jobs"
+@using DLMSmaui.Models
+@using DLMSmaui.Services
+@inject IAppService AppService;
+@inject IJSRuntime jsRuntime;
+@using System.Net.Http.Json;
+@using System.Net.Http;
+@using System.Text.Json;
+@using System.Threading.Tasks;
+@using DLMSmaui.Models;
+@using Newtonsoft.Json;
+@using System;
+@using System.Collections.Generic;
+@using System.Linq;
+@using System.Text;
+@using System.Threading.Tasks;
+@using System.Timers;
+<section>
+
+    <div id="side-header">
+        <div class="sidenav px-sm-2 px-md-4 text-start">
+            <a href="Dash" class="fs-5"><img src="images/layout.png" style="width: 28px; height: 28px;" class="me-2">Dashboard</a>
+            <a href="Jobs" class="fw-bold border fs-5 bg-white border-white" style="color:#3dcd58;"><img style="width: 28px; height: 28px;" class="me-2"  src="images/portfolio.png">Jobs</a>
+            <a href="Jobs" class="fs-5"><img src="images/dashboard.png" style="width: 28px; height: 28px;" class="me-2">Running Schedule</a>
+            <a href="singleschedule" class="fs-5"><img src="images/date.png" style="width: 28px; height: 28px;" class="me-2">Single Schedule</a>
+            <a href="multischedule" class="fs-5"><img src="images/gear.png" style="width: 28px; height: 28px;" class="me-2">Multi Schedule</a>
+            <a href="Jobs" class="fs-5"><img src="images/new-tab.png" style="width: 28px; height: 28px;" class="me-2">Auto Schedule</a>
+            <a class="btn btn-primary mx-2 ms-md-0 me-md-4" style="margin-top: 250px;">Get Support</a>
+        </div>
+
+        <button @onclick="ReloadPage">Reload</button>
+
+        <div class="main-content my-4">
+           
+            <div class="form-group">
+            <input class="form-control" type="text" placeholder="Search in Jobs"
+                   @bind="Filter"
+                   @bind:event="oninput">
+        </div>
+            <button @onclick="@(()=> Addjobs())">Add job</button>
+        @if (jobs == null)
+        {
+            <p><em>Loading...</em></p>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead class="thead-light">
+                        <tr>
+                            <th scope="col">Job Name</th>
+                            <th scope="col">Job ID</th>
+                            <th scope="col"></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                            @foreach (var job in GetCurrentPage())
+                        {
+                             if (!IsVisible(job))
+                                continue;
+                                <tr >
+                                    <td>@job.JobName</td>
+                                    <td>@job.JobID</td>
+                                    <td><button @onclick="@(()=> DisplayOption(job))">View actions</button></td>
+                                </tr>
+                        }
+                    </tbody>
+                </table>
+                    <nav aria-label="Page navigation">
+                        <ul class="pagination">
+                            <li class="page-item @(CurrentPage == 1 ? "disabled" : "")">
+                                <a class="page-link" tabindex="-1" aria-disabled="@(CurrentPage == 1 ? "true" : "false")" @onclick="() => GoToPage(CurrentPage - 1)">Previous</a>
+                            </li>
+                            @for (int i = 1; i <= TotalPages(); i++)
+                            {
+                                <li class="page-item @(CurrentPage == i ? "active" : "")"><a class="page-link"  @onclick="() => GoToPage(i)">@i</a></li>
+                            }
+                            <li class="page-item @(CurrentPage == TotalPages() ? "disabled" : "")">
+                                <a class="page-link"  aria-disabled="@(CurrentPage == TotalPages() ? "true" : "false")" @onclick="() => GoToPage(CurrentPage + 1)">Next</a>
+                            </li>
+                        </ul>
+                    </nav>
+            </div>
+        }
+
+        <div id="result"></div>
+        <div id="mydiv"></div>
+
+        </div>    
+    </div>
+</section>
+
+@code {
+    JobModel jobmodel = new JobModel();
+    Bulkdata bulkmodel = new Bulkdata();
+    private string _spinnerClass = "";
+    private string username = @Setting.UserBasicDetail.Email;
+
+    //private async void Submit()
+    //{
+    //    jobmodel.UserName = username;
+    //    _spinnerClass = "spinner-border spinner-border-sm";
+
+    //    var response = await AppService.RegisterJob(jobmodel);
+    //    if (response.IsSuccess)
+    //    {
+    //        await App.Current.MainPage.DisplayAlert("Success", "Job Registered.", "OK");
+    //    }
+    //    else
+    //    {
+    //        await App.Current.MainPage.DisplayAlert("Oops", response.ErrorMessage, "OK");
+    //    }
+    //    _spinnerClass = "";
+    //    this.StateHasChanged();
+
+    //}
+
+    [Inject]
+    NavigationManager NavigationManager { get; set; }
+
+    private void ReloadPage()
+    {
+        NavigationManager.NavigateTo(NavigationManager.Uri, forceLoad: true);
+
+    }
+
+    private async Task PassOutputValueToModel()
+    {
+        var outputValue = await jsRuntime.InvokeAsync<string>("convertCsvToJson");
+        bulkmodel.UserName = username;
+        bulkmodel.Jsondata= outputValue;
+    }
+
+    private List<FetchJobModel> jobs;
+
+    protected override async Task OnInitializedAsync()
+    {
+        jobs = await AppService.GetAllJobs();
+        timer = new Timer(3000);
+
+        // Hook up the Elapsed event handler
+        timer.Elapsed += new ElapsedEventHandler(OnTimerElapsed);
+
+        // Start the timer
+        timer.Start();
+
+    }
+
+    private HttpClient httpClient = new HttpClient();
+
+    private string StatusMessage = "";
+    private Timer timer;
+
+    private async void OnTimerElapsed(object sender, ElapsedEventArgs e)
+    {
+        // Call the GetData() method to retrieve the data
+
+        await InvokeAsync(() => {
+            GetData();
+            StateHasChanged();
+        });
+    }
+
+    private async Task GetData()
+    {
+        try
+        {
+            // Make the AJAX call to retrieve the data
+            var response = await httpClient.GetAsync("https://localhost:7288/Jobs/GetAllJobs");
+
+            if (response.IsSuccessStatusCode)
+            {
+                string contentStr = await response.Content.ReadAsStringAsync();
+                var mainResponse = JsonConvert.DeserializeObject<MainResponse>(contentStr);
+                if (mainResponse.IsSuccess)
+                {
+                    jobs = JsonConvert.DeserializeObject<List<FetchJobModel>>(mainResponse.Content.ToString());
+                }
+
+                // Trigger a re-render of the component to display the data
+                this.StateHasChanged();
+            }
+            else
+            {
+                StatusMessage = $"Error: {response.StatusCode}";
+            }
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Error: {ex.Message}";
+        }
+    }
+
+
+    public string Filter { get; set; }
+    public bool IsVisible(FetchJobModel job)
+    {
+        if (string.IsNullOrEmpty(Filter))
+            return true;
+
+        if (job.JobName.Contains(Filter, StringComparison.OrdinalIgnoreCase))
+            return true;
+
+        if (job.JobName.ToString().StartsWith(Filter) ||job.JobName.ToString().StartsWith(Filter))
+            return true;
+
+        return false;
+    }
+
+
+    private async void DisplayOption(FetchJobModel job)
+    {
+
+        var response = await App.Current.MainPage.DisplayActionSheet("Select Option", "Close", null, "View Schedules", "Delete Job", "AddSingleSchedule", "Add Mutiple Schedule");
+
+        if (response == "View Schedules")
+        {
+            NavigationManager.NavigateTo($"jobdetails/{job.JobID}");
+        }
+        else if (response == "AddSingleSchedule")
+        {
+            NavigationManager.NavigateTo($"singleschedle/{job.JobID}");
+        }
+        else if (response == "Add Mutiple Schedule")
+        {
+            NavigationManager.NavigateTo($"multipleschedule/{job.JobID}");
+        }
+
+        else if (response == "Delete Job")
+        {
+            var deleteResponse = await AppService.DeleteJob(job.JobID);
+
+            if (deleteResponse.IsSuccess)
+            {
+                await OnInitializedAsync();
+                this.StateHasChanged();
+                await App.Current.MainPage.DisplayAlert("Success", "Deleted sucessfully", "OK");
+            }
+            else
+            {
+                await App.Current.MainPage.DisplayAlert("Oops", deleteResponse.ErrorMessage, "OK");
+            }
+        }
+    }
+
+
+    public int PageSize = 10;
+    public int CurrentPage = 1;
+
+
+    private IEnumerable<FetchJobModel> GetCurrentPage()
+    {
+        return jobs.Skip((CurrentPage - 1) * PageSize).Take(PageSize);
+    }
+
+    private int TotalPages()
+    {
+        return (int)Math.Ceiling((double)jobs.Count / PageSize);
+    }
+
+    private void GoToPage(int page)
+    {
+        if (page >= 1 && page <= TotalPages())
+        {
+            CurrentPage = page;
+        }
+    }
+
+    private async void Addjobs()
+    {
+        var jobname = await App.Current.MainPage.DisplayPromptAsync("Add New Job", "Enter Job Name");
+        if (jobname != null && jobname != "")
+        {
+            jobmodel.UserName = username;
+            jobmodel.JobName = jobname;
+            _spinnerClass = "spinner-border spinner-border-sm";
+
+
+
+            var response = await AppService.RegisterJob(jobmodel);
+            if (response.IsSuccess)
+            {
+                await App.Current.MainPage.DisplayAlert("Success", "Job Registered.", "OK");
+            }
+            else
+            {
+                await App.Current.MainPage.DisplayAlert("Oops", response.ErrorMessage, "OK");
+            }
+            _spinnerClass = "";
+            this.StateHasChanged();
+        }
+        else if (jobname == "")
+        {
+            await App.Current.MainPage.DisplayAlert("Oops", "sorry", "OK");
+        }
+    }
+}

@@ -1,0 +1,122 @@
+﻿@page "/jobdetails/{JobID}"
+@using DLMSmaui.Models
+@using DLMSmaui.Services
+@inject IAppService AppService;
+@inject IJSRuntime jsRuntime;
+@using System.Net.Http.Json;
+@using System.Net.Http;
+@using System.Text.Json;
+@using System.Threading.Tasks;
+@using DLMSmaui.Models;
+@using Newtonsoft.Json;
+@using System;
+@using System.Collections.Generic;
+@using System.Linq;
+@using System.Text;
+@using System.Threading.Tasks;
+@using System.Timers;
+<section>
+
+    <div id="side-header">
+        <div class="sidenav px-sm-2 px-md-4 text-start">
+            <a href="Jobs" class="fs-5"><img src="images/layout.png" style="width: 28px; height: 28px;" class="me-2">Dashboard</a>
+            <a href="Jobs" class="fs-5"><img style="width: 28px; height: 28px;" class="me-2" src="images/portfolio_white.png">Jobs</a>
+            <a href="Jobs" class="fs-5"><img src="images/dashboard.png" style="width: 28px; height: 28px;" class="me-2">Running Schedule</a>
+            <a href="singleschedule" class="fs-5"><img src="images/date.png" style="width: 28px; height: 28px;" class="me-2">Single Schedule</a>
+            <a href="multischedule" class="fs-5"><img src="images/gear.png" style="width: 28px; height: 28px;" class="me-2">Multi Schedule</a>
+            <a href="Jobs" class="fw-bold border fs-5 bg-white border-white" style="color:#3dcd58;"><img src="images/new-tab-green.png" style="width: 28px; height: 28px;" class="me-2">All Schedules</a>
+            <a class="btn btn-primary mx-2 ms-md-0 me-md-4" style="margin-top: 250px;">Get Support</a>
+        </div>
+        <div class="main-content my-4">
+            <button @onclick="ReloadPage">Reload</button>
+            <button @onclick="GoBack">Back</button>
+            <p>you job id is @JobID</p>
+            @if (schedules == null)
+            {
+                <p><em>Loading...</em></p>
+            }
+            else
+            {
+                <table class="table" style="font-size:17px;">
+                    <thead class="">
+                        <tr>
+                            <th scope="col">SchedulerID</th>
+                            <th scope="col">ModeOfCommunication</th>
+                            <th scope="col">SchedulerRunFrom</th>
+                            <th scope="col">CreatedDate</th>
+                            <th scope="col">MeterStatus</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var i in schedules)
+                        {                        
+                            <tr>
+                                <td>@i.SchedulerID</td>
+                                <td>@i.ModeOfCommunication</td>
+                                <td>
+                                    @switch (@i.SchedulerRunFrom)
+                                    {
+                                        case null:
+                                            <img src="images/cross.png" style="width: 20px;padding-bottom: 5px;" />
+                                            break;
+                                        case "value2":
+                                            <img src="my-gif2.gif" />
+                                            break;
+                                        default:
+                                            <img src="default-gif.gif" />
+                                            break;
+                                    }
+                                </td>
+                                <td>@i.CreatedDate</td>
+                                <td>
+                                    @switch (@i.MeterStatus)
+                                    {
+                                        case null:
+                                            <img src="images/cross.png" style="width: 20px;padding-bottom: 5px;" />
+                                            break;
+                                        case "value2":
+                                            <img src="my-gif2.gif" />
+                                            break;
+                                        default:
+                                            <img src="default-gif.gif" />
+                                            break;
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+            <div id="result"></div>
+            <div id="mydiv"></div>
+        </div>
+    </div>
+</section>
+
+@code 
+{
+    [Parameter]
+    public string JobID { get; set; }
+
+    private List<Scheduledetails> schedules;
+    private string _spinnerClass = "";
+    private string username = @Setting.UserBasicDetail.Email;
+
+    protected override async Task OnInitializedAsync()
+    {
+        schedules = await AppService.GetAllSchdulesByJobID(JobID);
+    }
+
+    [Inject]
+    NavigationManager NavigationManager { get; set; }
+
+    private void ReloadPage()
+    {
+        NavigationManager.NavigateTo(NavigationManager.Uri, forceLoad: true);
+    }
+
+    private void GoBack()
+    {
+        
+    }
+}

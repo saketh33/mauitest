@@ -1,0 +1,44 @@
+﻿@page "/fetchdata"
+
+@using DLMSmaui.Data
+@using DLMSmaui.Models
+@using DLMSmaui.Services
+@inject IAppService  AppService;
+
+<h1>All Jobs</h1>
+
+<p>This component demonstrates fetching data from a service.</p>
+
+@if (jobs == null)
+{
+	<p><em>Loading...</em></p>
+}
+else
+{
+	<table class="table">
+		<thead>
+			<tr>
+				<th>jobs</th>
+				
+			</tr>
+		</thead>
+		<tbody>
+			@foreach (var job in jobs)
+			{
+				<tr>
+					<td>@job.JobName</td>
+					<td>@job.JobID</td>
+				</tr>
+			}
+		</tbody>
+	</table>
+}
+
+@code {
+	private List<FetchJobModel> jobs;
+
+	protected override async Task OnInitializedAsync()
+	{
+		jobs = await AppService.GetAllJobs();
+	}
+}

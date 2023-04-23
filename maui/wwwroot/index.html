@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <title>DLMSmaui</title>
+    <base href="/" />
+    <link rel="stylesheet" href="css/bootstrap/bootstrap.min.css" />
+    <link href="css/app.css" rel="stylesheet" />
+    <link href="DLMSmaui.styles.css" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/papaparse@5.3.0/papaparse.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0-beta1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-0evHe/X+R7YkIZDRvuzKMRqM+OrBnVFBL6DOitfPri4tjfHxaWutUpFmBp4vmVor" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0-beta1/dist/js/bootstrap.bundle.min.js" integrity="sha384-pprn3073KE6tl6bjs2QrFaJGz5/SUsLqktiwsUTF55Jfv3qYSDhgCecCxMW52nD2" crossorigin="anonymous"></script>
+    <script src="https://code.jquery.com/jquery-3.5.1.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.datatables.net/1.13.3/js/jquery.dataTables.min.js" crossorigin="anonymous">></script>
+    <script src="js/chart.js"></script>
+    <script src="ChartJsBlazorInterop.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.3.2/dist/chart.min.js"></script>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+</head>
+
+<body>
+
+    <div class="status-bar-safe-area"></div>
+
+    <div id="app">Loading...</div>
+
+    <div id="blazor-error-ui">
+        An unhandled error has occurred.
+        <a href="" class="reload">Reload</a>
+        <a class="dismiss">🗙</a>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/papaparse@5.3.0/papaparse.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.4/Chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.3.2/dist/chart.min.js"></script>
+
+
+    <script src="_framework/blazor.webview.js" autostart="false"></script>
+    <script>
+
+        function saveProfile() {
+            var favorite = [];
+            var profileInputs = document.querySelectorAll("input[name='Profile']:checked");
+            for (var i = 0; i < profileInputs.length; i++) {
+                favorite.push(profileInputs[i].value);
+                console.log("Checkbox value: ", profileInputs[i].value);
+            }
+            document.getElementById("demo").innerHTML = favorite.join(", ");
+            document.getElementById("staticBackdrop").style.display = "none";
+            document.getElementById("countno").innerHTML = favorite.length;
+            let text = favorite.toString();
+            return text
+        }
+
+        function readFileContents(fileElement) {
+            return new Promise((resolve, reject) => {
+                const file = fileElement.files[0];
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = reject;
+                reader.readAsText(file);
+            });
+        }
+
+
+        /**
+        * This function reads a CSV file uploaded by a user and converts it to JSON format.
+        * If the file does not contain the expected columns, it displays an error message.
+        * Otherwise, it calls the 'displayJson' function to show the JSON data.
+        */
+        function convertCsvToTable() {
+            const input = document.querySelector('input[type="file"]');
+            const file = input.files[0];
+            if (!file) {
+                alert('Please select a file');
+                return;
+            }
+            const reader = new FileReader();
+            reader.onload = function (event) {
+                const csv = event.target.result;
+                const parsed = Papa.parse(csv, { header: true });
+                const data = parsed.data;
+                var CommunicationType = document.getElementById("communicationtype").value;
+                var expectedColumns = '';
+
+                if (CommunicationType == "Direct") {
+                    const columns = ["meterId", "recurrenceType", "scheduleDate", "daily", "recurring", "parity", "baudrate", "comPort", "profile"];
+                    expectedColumns = columns;
+                }
+                else if (CommunicationType == "SerialTCP") {
+                    const columns = ["ServerIP", "ServerPort", "Password", "ScheduleType", "ScheduleTime"];
+                    expectedColumns = columns;
+                }
+                else if (CommunicationType == "TCPIP") {
+                    const columns = ["ServerIP", "ClientIP", "ServerPort", "Password", "ScheduleType", "ScheduleTime"];
+                    expectedColumns = columns;
+                }
+                else if (CommunicationType == "RS485") {
+                    const columns = ["SlaveID", "recurrenceType", "scheduleDate", "daily", "recurring", "parity", "baudrate", "comPort", "profile"];
+                    expectedColumns = columns;
+                }
+
+                const actualColumns = parsed.meta.fields;
+                const missingColumns = expectedColumns.filter(col => !actualColumns.includes(col));
+                if (missingColumns.length > 0) {
+                    alert(`File does not have the expected columns: ${missingColumns.join(', ')}`);
+                    return;
+                }
+
+                // create a table element
+                const table = document.createElement('table');
+                if (CommunicationType == "Direct") {
+                    table.id = 'DirectCSVTable';
+                }
+                else if (CommunicationType == "SerialTCP") {
+                    table.id = 'SerialTCPCSVTable';
+                }
+                else if (CommunicationType == "TCPIP") {
+                    table.id = 'TcpipCSVTable';
+                }
+                else if (CommunicationType == "RS485") {
+                    table.id = 'RS485CSVTable';
+                }
+
+
+                // create the table header element
+                const thead = document.createElement('thead');
+                table.appendChild(thead);
+
+                // create a row for the headers and add to the thead
+                const headerRow = document.createElement('tr');
+                for (let col of actualColumns) {
+                    const headerCell = document.createElement('th');
+                    headerCell.textContent = col;
+                    headerRow.appendChild(headerCell);
+                }
+                thead.appendChild(headerRow);
+
+                // create the table body element
+                const tbody = document.createElement('tbody');
+                table.appendChild(tbody);
+
+                // loop over the data rows and create a row for each one
+                for (let row of data) {
+                    const dataRow = document.createElement('tr');
+                    for (let col of actualColumns) {
+                        const dataCell = document.createElement('td');
+                        dataCell.textContent = row[col];
+                        dataRow.appendChild(dataCell);
+                    }
+                    tbody.appendChild(dataRow);
+                }
+
+                // get the container element and add the table to it
+                const tableContainer = document.getElementById('result');
+                if (tableContainer) {
+                    tableContainer.appendChild(table);
+                }
+
+                // hide other elements on successful conversion
+                const myDiv = document.getElementById('option1');
+                if (myDiv) {
+                    myDiv.style.display = 'none';
+                }
+                const myDiv1 = document.getElementById('addrowbutton');
+                if (myDiv1) {
+                    myDiv1.style.display = 'none';
+                }
+            };
+            reader.readAsText(file);
+        }
+
+
+        function checkingtable(tableid) {
+            const table = document.getElementById(tableid);
+            if (table) {
+                const rows = table.rows;
+                if (rows.length > 1) {
+                    return "yesrows";
+                }
+                else {
+                    return "norows";
+                }
+            }
+            else {
+                return "notable";
+            }
+        }
+
+        function displayJson(json) {
+            // Clear any existing table from the result div
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = '';
+
+            // Create a table element and add it to the result div
+            const table = document.createElement('table');
+            resultDiv.appendChild(table);
+
+            // Add the header row to the table
+            const headerRow = table.insertRow();
+            for (const key in json[0]) {
+                const headerCell = document.createElement('th');
+                headerCell.textContent = key;
+                headerRow.appendChild(headerCell);
+            }
+
+            // Add the data rows to the table
+            json.forEach(obj => {
+                const dataRow = table.insertRow();
+                for (const key in obj) {
+                    const dataCell = dataRow.insertCell();
+                    dataCell.textContent = obj[key];
+                }
+            });
+        }
+
+        function getSelectedValue() {
+            const selectElement = document.getElementById("selectedjob"); // replace "mySelect" with the id of your select element
+            const selectedValue = selectElement.value;
+            document.getElementById("showselectedjob").innerHTML = selectedValue;
+            return selectedValue // or do something else with the selected value
+        }
+
+
+        // Function to add a new row to the table
+        function addRow() {
+
+            var CommunicationType = document.getElementById("communicationtype").value;
+            if (CommunicationType == "Direct" || CommunicationType == "RS485") {
+
+                if (CommunicationType == "Direct") {
+                    var MeterIdInput = document.getElementById("meteridInput").value;
+                } else if (CommunicationType == "RS485") {
+                    var MeterIdInput = document.getElementById("slaveidInput").value;
+                }
+                var ComportInput = document.getElementById("comportInput").value;
+                var ParityInput = document.getElementById("parityInput").value;
+                var BaudrateInput = document.getElementById("baudrateInput").value;
+                var PasswordInput = document.getElementById("PasswordInput").value;
+                var ScheduleTypeInput = document.getElementById("options").value;
+                if (ScheduleTypeInput === "Recurring") {
+                    ScheduleTimeInput = document.getElementById("div1").value;
+                } else if (ScheduleTypeInput === "Daily") {
+                    ScheduleTimeInput = document.getElementById("div2").value;
+                } else if (ScheduleTypeInput === "Datetime") {
+                    ScheduleTimeInput = document.getElementById("div3").value;
+                }
+
+                // Create a new row
+                if (CommunicationType == "Direct") {
+                    var table = document.getElementById("DirectTable");
+                } else if (CommunicationType == "RS485") {
+                    var table = document.getElementById("RS485Table");
+                }
+                var row = table.insertRow(-1);
+                var rowId = "row" + table.rows.length; // Generate unique ID for the row
+                row.id = rowId;
+                var MeterIdInputCell = row.insertCell(0);
+                var ComportInputCell = row.insertCell(1);
+                var ParityInputCell = row.insertCell(2);
+                var BaudrateInputCell = row.insertCell(3);
+                var PasswordInputCell = row.insertCell(4);
+                var ScheduleTypeInputCell = row.insertCell(5);
+                var ScheduleTimeInputCell = row.insertCell(6);
+                var ActionCell = row.insertCell(7);
+
+                // Set the cell values
+
+                MeterIdInputCell.innerHTML = MeterIdInput;
+                ComportInputCell.innerHTML = ComportInput;
+                ParityInputCell.innerHTML = ParityInput;
+                BaudrateInputCell.innerHTML = BaudrateInput;
+                PasswordInputCell.innerHTML = PasswordInput;
+                ScheduleTypeInputCell.innerHTML = ScheduleTypeInput;
+                ScheduleTimeInputCell.innerHTML = ScheduleTimeInput;
+                ActionCell.innerHTML = '<a class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#Editrows" onclick="senddata()">Edit row</a><button onclick="deleteRow(this)">Delete</button>';
+
+                // Reset the form
+                document.getElementById("addRowForm").reset();
+                div1.style.display = "none";
+                div2.style.display = "none";
+                div3.style.display = "none";
+            }
+            else if (CommunicationType == "TCPIP" || CommunicationType == "SerialTCP") {
+
+                var ServerIPInput = document.getElementById("ServerIPInput").value;
+                if (CommunicationType == "TCPIP") {
+                    var ClientIPInput = document.getElementById("ClientIPInput").value;
+                }
+                var ServerPortInput = document.getElementById("ServerPortInput").value;
+                var PasswordInput = document.getElementById("PasswordInput").value;
+                var ScheduleTypeInput = document.getElementById("options").value;
+                if (ScheduleTypeInput === "Recurring") {
+                    ScheduleTimeInput = document.getElementById("div1").value;
+                } else if (ScheduleTypeInput === "Daily") {
+                    ScheduleTimeInput = document.getElementById("div2").value;
+                } else if (ScheduleTypeInput === "Datetime") {
+                    ScheduleTimeInput = document.getElementById("div3").value;
+                }
+
+                // Create a new row
+                if (CommunicationType == "TCPIP") {
+                    var table = document.getElementById("TcpipTable");
+                } else if (CommunicationType == "SerialTCP") {
+                    var table = document.getElementById("SerialTCPTable");
+                }
+
+                var row = table.insertRow(-1);
+                var rowId = "row" + table.rows.length; // Generate unique ID for the row
+                row.id = rowId;
+                if (CommunicationType == "TCPIP") {
+
+                    var ServerIPInputCell = row.insertCell(0);
+                    var ClientIPInputCell = row.insertCell(1);
+                    var ServerPortInputCell = row.insertCell(2);
+                    var PasswordInputCell = row.insertCell(3);
+                    var ScheduleTypeInputCell = row.insertCell(4);
+                    var ScheduleTimeInputCell = row.insertCell(5);
+                    var ActionCell = row.insertCell(6);
+                } else if (CommunicationType == "SerialTCP") {
+                    var ServerIPInputCell = row.insertCell(0);
+                    var ServerPortInputCell = row.insertCell(1);
+                    var PasswordInputCell = row.insertCell(2);
+                    var ScheduleTypeInputCell = row.insertCell(3);
+                    var ScheduleTimeInputCell = row.insertCell(4);
+                    var ActionCell = row.insertCell(5);
+                }
+                // Set the cell values
+
+                ServerIPInputCell.innerHTML = ServerIPInput;
+                if (CommunicationType == "TCPIP") {
+                    ClientIPInputCell.innerHTML = ClientIPInput;
+                }
+
+                ServerPortInputCell.innerHTML = ServerPortInput;
+                PasswordInputCell.innerHTML = PasswordInput;
+                ScheduleTypeInputCell.innerHTML = ScheduleTypeInput;
+                ScheduleTimeInputCell.innerHTML = ScheduleTimeInput;
+                ActionCell.innerHTML = '<a class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#Editrows" onclick="senddata()">Edit row</a><button onclick="deleteRow(this)">Delete</button>';
+
+                // Reset the form
+                document.getElementById("addRowForm").reset();
+                div1.style.display = "none";
+                div2.style.display = "none";
+                div3.style.display = "none";
+            }
+
+        }
+
+
+        function senddata() {
+            var CommunicationType = document.getElementById("communicationtype").value;
+            if (CommunicationType == "Direct" || CommunicationType == "RS485") {
+                // Get the row that was clicked
+                var rowdataId = event.target.parentNode.parentNode.id;
+                var row = event.target.parentNode.parentNode;
+                // Get the name and email values from the row
+                var meteridInputCell = row.cells[0].textContent;
+                var comportInputCell = row.cells[1].textContent;
+                var parityInputCell = row.cells[2].textContent;
+                var baudrateInputCell = row.cells[3].textContent;
+                var PasswordInputCell = row.cells[4].textContent;
+                var scheduletypeCell = row.cells[5].textContent;
+                var scheduletimeCell = row.cells[6].textContent;
+
+                // Set the input values in the edit row popup to the retrieved data
+                if (CommunicationType == "Direct") {
+                    document.getElementById("editmeteridInput").value = meteridInputCell;
+                } else if (CommunicationType == "RS485") {
+                    document.getElementById("editslaveidInput").value = meteridInputCell;
+                }
+
+                document.getElementById("editcomportInput").value = comportInputCell;
+                document.getElementById("editparityInput").value = parityInputCell;
+                document.getElementById("editbaudrateInput").value = baudrateInputCell;
+                document.getElementById("editPasswordInput").value = PasswordInputCell;
+                var select = document.getElementById("editoptions");
+                select.value = scheduletypeCell;
+                editshowHideDivs();
+                if (scheduletypeCell === "Recurring") {
+                    document.getElementById("editdiv1").value = scheduletimeCell;
+                } else if (scheduletypeCell === "Daily") {
+                    document.getElementById("editdiv2").value = scheduletimeCell;
+                } else if (scheduletypeCell === "Datetime") {
+                    document.getElementById("editdiv3").value = scheduletimeCell;
+                }
+                document.getElementById("rowid").value = rowdataId;
+            }
+            else if (CommunicationType == "TCPIP" || CommunicationType == "SerialTCP") {
+                var rowdataId = event.target.parentNode.parentNode.id;
+
+                var row = event.target.parentNode.parentNode;
+                // Get the name and email values from the row
+
+                if (CommunicationType == "TCPIP") {
+
+                    var ServerIPInputCell = row.cells[0].textContent;
+                    var ClientIPInputCell = row.cells[1].textContent;
+                    var ServerPortInputCell = row.cells[2].textContent;
+                    var PasswordInputCell = row.cells[3].textContent;
+                    var scheduletypeCell = row.cells[4].textContent;
+                    var scheduletimeCell = row.cells[5].textContent;
+
+                } else if (CommunicationType == "SerialTCP") {
+                    var ServerIPInputCell = row.cells[0].textContent;
+                    var ServerPortInputCell = row.cells[1].textContent;
+                    var PasswordInputCell = row.cells[2].textContent;
+                    var scheduletypeCell = row.cells[3].textContent;
+                    var scheduletimeCell = row.cells[4].textContent;
+
+                }
+                // Set the input values in the edit row popup to the retrieved data
+                document.getElementById("editServerIPInput").value = ServerIPInputCell;
+                if (CommunicationType == "TCPIP") {
+                    document.getElementById("editClientIPInput").value = ClientIPInputCell;
+                }
+                document.getElementById("editServerPortInput").value = ServerPortInputCell;
+                document.getElementById("editPasswordInput").value = PasswordInputCell;
+                var select = document.getElementById("editoptions");
+                select.value = scheduletypeCell;
+                editshowHideDivs();
+                if (scheduletypeCell === "Recurring") {
+                    document.getElementById("editdiv1").value = scheduletimeCell;
+                } else if (scheduletypeCell === "Daily") {
+                    document.getElementById("editdiv2").value = scheduletimeCell;
+                } else if (scheduletypeCell === "Datetime") {
+                    document.getElementById("editdiv3").value = scheduletimeCell;
+                }
+                document.getElementById("rowid").value = rowdataId;
+            }
+
+        }
+
+        function saveEditedRow() {
+            var CommunicationType = document.getElementById("communicationtype").value;
+            if (CommunicationType == "Direct" || CommunicationType == "RS485") {
+                // Get the row that was edited
+                rowid = document.getElementById("rowid").value
+                const row = document.querySelector(`#${rowid}`);
+
+                // Get the new name and email values from the input fields
+                if (CommunicationType == "Direct") {
+                    var editmeteridInput = document.getElementById("editmeteridInput").value;
+                } else if (CommunicationType == "RS485") {
+                    var editslaveidInput = document.getElementById("editslaveidInput").value;
+                }
+
+                var editcomportInput = document.getElementById("editcomportInput").value;
+                var editparityInput = document.getElementById("editparityInput").value;
+                var editbaudrateInput = document.getElementById("editbaudrateInput").value;
+                var editPasswordInput = document.getElementById("editPasswordInput").value;
+                var editoptions = document.getElementById("editoptions").value
+                if (editoptions === "Recurring") {
+                    var scheduletimeCell = document.getElementById("editdiv1").value;
+                } else if (editoptions === "Daily") {
+                    var scheduletimeCell = document.getElementById("editdiv2").value;
+                } else if (editoptions === "Datetime") {
+                    var scheduletimeCell = document.getElementById("editdiv3").value;
+                }
+                // Update the table row with the new values
+                if (CommunicationType == "Direct") {
+                    row.cells[0].textContent = editmeteridInput;
+                } else if (CommunicationType == "RS485") {
+                    row.cells[0].textContent = editslaveidInput;
+                }
+                row.cells[1].textContent = editcomportInput;
+                row.cells[2].textContent = editparityInput;
+                row.cells[3].textContent = editbaudrateInput;
+                row.cells[4].textContent = editPasswordInput;
+                row.cells[5].textContent = editoptions;
+                row.cells[6].textContent = scheduletimeCell;
+            }
+            else if (CommunicationType == "TCPIP" || CommunicationType == "SerialTCP") {
+
+                rowid = document.getElementById("rowid").value
+                const row = document.querySelector(`#${rowid}`);
+
+                var editServerIPInput = document.getElementById("editServerIPInput").value;
+                if (CommunicationType == "TCPIP") {
+                    var editClientIPInput = document.getElementById("editClientIPInput").value;
+                }
+                var editServerPortInput = document.getElementById("editServerPortInput").value;
+
+                var editPasswordInput = document.getElementById("editPasswordInput").value;
+                var editoptions = document.getElementById("editoptions").value
+                if (editoptions === "Recurring") {
+                    var scheduletimeCell = document.getElementById("editdiv1").value;
+                } else if (editoptions === "Daily") {
+                    var scheduletimeCell = document.getElementById("editdiv2").value;
+                } else if (editoptions === "Datetime") {
+                    var scheduletimeCell = document.getElementById("editdiv3").value;
+                }
+
+                if (CommunicationType == "TCPIP") {
+
+                    row.cells[0].textContent = editServerIPInput
+                    row.cells[1].textContent = editClientIPInput
+                    row.cells[2].textContent = editServerPortInput
+                    row.cells[3].textContent = editPasswordInput
+                    row.cells[4].textContent = editoptions
+                    row.cells[5].textContent = scheduletimeCell
+
+                } else if (CommunicationType == "SerialTCP") {
+                    row.cells[0].textContent = editServerIPInput
+                    row.cells[1].textContent = editServerPortInput
+                    row.cells[2].textContent = editPasswordInput
+                    row.cells[3].textContent = editoptions
+                    row.cells[4].textContent = scheduletimeCell
+                }
+            }
+        }
+
+        function deleteRow(button) {
+            // Get the row that contains the button that was clicked
+            var row = button.parentNode.parentNode;
+
+            // Get the table that contains the row
+            var table = row.parentNode;
+
+            // Remove the row from the table
+            table.removeChild(row);
+        }
+
+
+        function showHideDivs() {
+            var options = document.getElementById("options");
+            var div1 = document.getElementById("div1");
+            var div2 = document.getElementById("div2");
+            var div3 = document.getElementById("div3");
+
+            if (options.value === "Recurring") {
+                div1.style.display = "block";
+                div2.style.display = "none";
+                div3.style.display = "none";
+            } else if (options.value === "Daily") {
+                div1.style.display = "none";
+                div2.style.display = "block";
+                div3.style.display = "none";
+            } else if (options.value === "Datetime") {
+                div1.style.display = "none";
+                div2.style.display = "none";
+                div3.style.display = "block";
+            } else {
+                div1.style.display = "none";
+                div2.style.display = "none";
+                div3.style.display = "none";
+            }
+        }
+
+
+        function editshowHideDivs() {
+            var editoptions = document.getElementById("editoptions");
+            var editdiv1 = document.getElementById("editdiv1");
+            var editdiv2 = document.getElementById("editdiv2");
+            var editdiv3 = document.getElementById("editdiv3");
+
+            if (editoptions.value === "Recurring") {
+                editdiv1.style.display = "block";
+                editdiv2.style.display = "none";
+                editdiv3.style.display = "none";
+            } else if (editoptions.value === "Daily") {
+                editdiv1.style.display = "none";
+                editdiv2.style.display = "block";
+                editdiv3.style.display = "none";
+            } else if (editoptions.value === "Datetime") {
+                editdiv1.style.display = "none";
+                editdiv2.style.display = "none";
+                editdiv3.style.display = "block";
+            } else {
+                editdiv1.style.display = "none";
+                editdiv2.style.display = "none";
+                editdiv3.style.display = "none";
+            }
+        }
+
+
+        function converttabletojson(tableId, ignoredColumnIndex) {
+            const table = document.getElementById(tableId);
+            const rows = table.rows;
+            const data = [];
+            for (let i = 1; i < rows.length; i++) {
+                const row = rows[i];
+                const cells = row.cells;
+                const rowData = {};
+                for (let j = 0; j < cells.length; j++) {
+                    if (j !== ignoredColumnIndex) {
+                        const cell = cells[j];
+                        const header = table.rows[0].cells[j].innerText;
+                        rowData[header] = cell.innerText;
+                    }
+                }
+                data.push(rowData);
+            }
+
+            const jsonData = JSON.stringify(data);
+            return jsonData;
+        }
+
+        const xArray = [50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150];
+        const yArray = [7, 8, 8, 9, 9, 9, 10, 11, 14, 14, 15];
+
+        // Define Data
+        const data = [{
+            x: xArray,
+            y: yArray,
+            mode: "markers"
+        }];
+
+        // Define Layout
+        const layout = {
+            xaxis: { range: [40, 160], title: "Square Meters" },
+            yaxis: { range: [5, 16], title: "Price in Millions" },
+            title: "House Prices vs. Size"
+        };
+
+        // Display using Plotly
+        Plotly.newPlot("myPlot", data, layout);
+
+    </script>
+
+</body>
+
+</html>

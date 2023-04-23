@@ -1,0 +1,387 @@
+﻿@page "/singleschedle/{JobID}"
+@using DLMSmaui.Models
+@using DLMSmaui.Services
+@inject IAppService AppService;
+@inject IJSRuntime jsRuntime;
+@using System.Net.Http.Json;
+@using System.Net.Http;
+@using System.Text.Json;
+@using System.Threading.Tasks;
+@using DLMSmaui.Models;
+@using Newtonsoft.Json;
+@using System;
+@using System.Collections.Generic;
+@using System.Linq;
+@using System.Text;
+@using System.Threading.Tasks;
+@using System.Timers;
+<section>
+    <div id="side-header">
+        <div class="sidenav px-sm-2 px-md-4 text-start">
+            <a href="Jobs" class="fs-5"><img src="images/layout.png" style="width: 28px; height: 28px;" class="me-2">Dashboard</a>
+            <a href="Jobs" class="fs-5"><img style="width: 28px; height: 28px;" class="me-2" src="images/portfolio_white.png">Jobs</a>
+            <a href="Jobs" class="fs-5"><img src="images/dashboard.png" style="width: 28px; height: 28px;" class="me-2">Running Schedule</a>
+            <a href="singleschedule" class="fw-bold border fs-5 bg-white border-white" style="color:#3dcd58;"><img src="images/date_green.png" style="width: 28px; height: 28px;" class="me-2">Single Schedule</a>
+            <a href="multischedule" class="fs-5"><img src="images/gear.png" style="width: 28px; height: 28px;" class="me-2">Multi Schedule</a>
+            <a href="Jobs" class="fs-5"><img src="images/new-tab.png" style="width: 28px; height: 28px;" class="me-2">Auto Schedule</a>
+            <a class="btn btn-primary mx-2 ms-md-0 me-md-4" style="margin-top: 250px;">Get Support</a>
+        </div>
+        <div class="main-content my-4">
+
+            <div id="London" class="tabcontent">
+
+                <button @onclick="ReloadPage">Reload</button>
+                <p>you job id is @JobID</p>
+                <EditForm Model="@singleschedule" OnValidSubmit="Submit">
+
+                    <div class="d-flex flex-row flex-wrap">
+                        <h6 class="pe-4 pt-2">Communication Type:</h6>
+                        <div style="width: 30%;">
+                            <select class="col form-select form-select-sm div-toggle" @bind="@singleschedule.ModeOfCommunication">
+                                @singleschedule.ModeOfCommunication = "Direct";
+                                @foreach (var template in templates)
+                                {
+                                    <option value=@template>
+                                        <div class="form-check fs-6 ms-5">
+                                            @template
+                                        </div>
+                                    </option>
+                                }
+                            </select>
+
+                        </div>
+                    </div>
+
+                    <div class="container-fluid">
+
+                        <div class="row text-start mt-5">
+                            @if (!string.IsNullOrEmpty(singleschedule.ModeOfCommunication))
+                            {
+                                @if (singleschedule.ModeOfCommunication == "Direct")
+                                {
+                                    <div class="col-md-5 mb-3">
+                                        <h5>Port Details</h5>
+                                        <div class="card p-4">
+                                            <div class="row">
+                                                <h6 class="col-5">COM Port :</h6>
+                                                <select class="col form-select form-select-sm" @bind="@singleschedule.COMPort">
+                                                    <option selected>Open this select menu</option>
+                                                    <option value="1">One</option>
+                                                    <option value="2">Two</option>
+                                                    <option value="3">Three</option>
+                                                </select>
+                                            </div>
+                                            <div class="row pt-3">
+                                                <h6 class="col-5">Parity :</h6>
+                                                <select class="col form-select form-select-sm" @bind="@singleschedule.Parity">
+                                                    <option selected>Open this select menu</option>
+                                                    <option value="1">One</option>
+                                                    <option value="2">Two</option>
+                                                    <option value="3">Three</option>
+                                                </select>
+                                            </div>
+                                            <div class="row pt-3">
+                                                <h6 class="col-5">Baud Rate :</h6>
+                                                <select class="col form-select form-select-sm" @bind="@singleschedule.Baudrate">
+                                                    <option selected>Open this select menu</option>
+                                                    <option value="1">One</option>
+                                                    <option value="2">Two</option>
+                                                    <option value="3">Three</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+                                }
+
+                                else if (singleschedule.ModeOfCommunication == "SerialTCP")
+                                {
+                                    <div class="col-md-5 mb-3">
+                                        <h5>Serial TCP IP details</h5>
+                                        <div class="card p-4">
+                                            <div class="row">
+                                                <h6 class="col-5">Ip address:</h6>
+                                                <input type="text" class="col form-control form-control-sm" placeholder="Enter ip address" @bind-value="@singleschedule.SerialTCPaddress">
+                                            </div>
+                                            <div class="row pt-3">
+                                                <h6 class="col-5">Client ID:</h6>
+                                                <input type="text" class="col form-control form-control-sm" placeholder="enter client id" @bind-value="@singleschedule.SerialTCPcleintid">
+                                            </div>
+                                            <div class="row pt-3">
+                                                <h6 class="col-5">Port number :</h6>
+                                                <input type="text" class="col form-control form-control-sm" placeholder="enter port number" @bind-value="@singleschedule.SerialTCPportnumber">
+                                            </div>
+                                        </div>
+                                    </div>
+                                }
+
+                                else if (singleschedule.ModeOfCommunication == "TCPIP")
+                                {
+                                    <div class="col-md-5 mb-3">
+                                        <h5>TCP details</h5>
+                                        <div class="card p-4">
+                                            <div class="row">
+                                                <h6 class="col-5">Ip address:</h6>
+                                                <input type="text" class="col form-control form-control-sm" placeholder="Enter ip address" @bind-value="@singleschedule.TCPipaddress">
+                                            </div>
+                                            <div class="row pt-3">
+                                                <h6 class="col-5">Client ID:</h6>
+                                                <input type="text" class="col form-control form-control-sm" placeholder="enter client id" @bind-value="@singleschedule.TCPclientid">
+                                            </div>
+                                            <div class="row pt-3">
+                                                <h6 class="col-5">Port number :</h6>
+                                                <input type="text" class="col form-control form-control-sm" placeholder="enter port number" @bind-value="@singleschedule.TCPportnumber">
+                                            </div>
+                                        </div>
+                                    </div>
+                                }
+
+                                <div class="col-md-7">
+                                    <h5>Meter Details</h5>
+                                    <div class="card p-4 pt-2">
+                                        <div class="row">
+                                            <div class="col-md-5">
+                                                <div class="mb-2">
+                                                    <a class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#staticBackdrop">Selected parameters </a>
+                                                </div>
+                                                <div class="modal fade" id="staticBackdrop" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
+                                                    <div class="modal-dialog">
+                                                        <div class="modal-content" id="editor">
+                                                            <div class="modal-header">
+                                                                <h1 class="modal-title fs-5" id="staticBackdropLabel">Selection of parameters</h1>
+                                                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                            </div>
+                                                            <div class="modal-body fs-6">
+                                                                <div class="form-check">
+                                                                    <label>
+                                                                        <input class="form-check-input" type="checkbox" name="Profile" value="Biling profile" id="flexCheckDefault">
+                                                                        Biling profile
+                                                                    </label>
+                                                                </div>
+                                                                <div class="form-check">
+                                                                    <label>
+                                                                        <input class="form-check-input" type="checkbox" name="Profile" value="Daily load profile" id="flexCheckDefault">
+                                                                        Daily load profile
+                                                                    </label>
+                                                                </div>
+                                                                <div class="form-check">
+                                                                    <label>
+                                                                        <input class="form-check-input" type="checkbox" name="Profile" value="Instantaneous" id="flexCheckDefault">
+                                                                        Instantaneous
+                                                                    </label>
+                                                                </div>
+                                                                <div class="form-check">
+                                                                    <label>
+                                                                        <input class="form-check-input" type="checkbox" name="Profile" value="Power fail related events" id="flexCheckDefault">
+                                                                        Power fail related events
+                                                                    </label>
+                                                                </div>
+                                                                <div class="form-check">
+                                                                    <label>
+                                                                        <input class="form-check-input" type="checkbox" name="Profile" value="Voltage related events" id="flexCheckDefault">
+                                                                        Voltage related events
+                                                                    </label>
+                                                                </div>
+                                                                <div class="form-check">
+                                                                    <label>
+                                                                        <input class="form-check-input" type="checkbox" name="Profile" value="Current related events" id="flexCheckDefault">
+                                                                        Current related events
+                                                                    </label>
+                                                                </div>
+                                                                <div class="form-check">
+                                                                    <label>
+                                                                        <input class="form-check-input" type="checkbox" name="Profile" value=" Other events" id="flexCheckDefault">
+                                                                        Other events
+                                                                    </label>
+                                                                </div>
+                                                                <div class="form-check">
+                                                                    <label>
+                                                                        <input class="form-check-input" type="checkbox" name="Profile" value="Non-rolled events" id="flexCheckDefault">
+                                                                        Non-rolled events
+                                                                    </label>
+                                                                </div>
+                                                                <div class="form-check">
+                                                                    <label>
+                                                                        <input class="form-check-input" type="checkbox" name="Profile" value="Load profile" id="flexCheckDefault">
+                                                                        Load profile
+                                                                    </label>
+                                                                </div>
+                                                            </div>
+                                                            <div class="modal-footer">
+                                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" id="btnSave" onclick="saveProfile()">Update</button>
+                                                                <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Cancel</button>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="col">
+                                                <p id="demo" class="fs-6 pt-2 mb-2"></p>
+                                            </div>
+                                        </div>
+                                        <div class="row pt-1">
+                                            <h6 class="col-6 pt-1">Number of Parameter selected </h6>
+                                            <div class="col fs-6 pt-2" id="countno"></div>
+                                        </div>
+                                        <div class="row pt-1">
+                                            <h6 class="col-5 pt-1">Meter ID</h6>
+                                            <input type="tel" class="col form-control form-control-sm" placeholder="Enter Meter ID" @bind-value="@singleschedule.MeterId" required>
+                                        </div>
+                                    </div>
+
+                                </div>
+
+                                <div class="col-md-5 mb-3">
+                                    <h5>Schedule details</h5>
+                                    <div class="card p-4">
+                                        <div class="row" style="padding-bottom:20px">
+
+                                            <h6 class="col-5">Type:</h6>
+
+                                            <select class="col form-select form-select-sm div-toggle" @bind="@singleschedule.ModeOfSchedule">
+                                                @foreach (var template in times)
+                                                {
+                                                    <option value=@template>
+                                                        <div class="form-check fs-6 ms-5">
+                                                            @template
+                                                        </div>
+                                                    </option>
+                                                }
+                                            </select>
+
+                                        </div>
+
+                                        @if (singleschedule.ModeOfSchedule == "Recurring")
+                                        {
+                                            <div class="row">
+                                                <h6 class="col-5">Recurring :</h6>
+                                                <input type="number" class="col form-control form-control-sm" id="exampleFormControlInput1" placeholder="Enter Minutes" @bind="@singleschedule.Recurring">
+                                            </div>
+                                        }
+                                        else if (singleschedule.ModeOfSchedule == "Daily")
+                                        {
+                                            <div class="row pt-3">
+                                                <h6 class="col-5">Daily :</h6>
+                                                <input type="time" class="col form-control form-control-sm" id="exampleFormControlInput1" name="DailyTime" @bind="@singleschedule.Daily">
+                                            </div>
+                                        }
+                                        else if (singleschedule.ModeOfSchedule == "Datetime")
+                                        {
+                                            <div class="row pt-3" id="date">
+                                                <h6 class="col-5">Date & time :</h6>
+                                                <input type="datetime-local" class="col form-control form-control-sm" id="exampleFormControlInput1" @bind="@singleschedule.ScheduleDate">
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
+
+                                <div class="col-md-5 mb-3">
+
+                                    <button class="btn btn-primary" type="submit">
+                                        <span class="@_spinnerClass" role="status" aria-hidden="true"></span>
+                                        Register
+                                    </button>
+                                </div>
+
+                            }
+                        </div>
+
+                    </div>
+
+                </EditForm>
+
+            </div>
+
+        </div>
+    </div>
+</section>
+
+@code {
+    List<string> templates = new List<string>() { "Direct", "SerialTCP", "TCPIP" };
+    List<string> times = new List<string>() { "Recurring", "Daily", "Datetime" };
+
+    SingleSchedule singleschedule = new SingleSchedule();
+    private string _spinnerClass = "";
+    private string username = @Setting.UserBasicDetail.Email;
+    [Parameter]
+    public string JobID { get; set; }
+
+    private async void Submit()
+    {
+        // Invoke a JavaScript function called "saveProfile" and wait for its result
+        var outputValue = await jsRuntime.InvokeAsync<string>("saveProfile");
+
+        singleschedule.UserName = username;
+        singleschedule.Profile = outputValue;
+        singleschedule.SJobID = JobID;
+
+
+        // Show a spinner while waiting for the server to respond
+        _spinnerClass = "spinner-border spinner-border-sm";
+
+        // Call the Registersingleschedule method of the AppService and wait for its response
+        var response = await AppService.Registersingleschedule(singleschedule);
+
+        // Check if the response is successful
+        if (response.IsSuccess)
+        {
+            // Display a success message if the response is successful
+            await App.Current.MainPage.DisplayAlert("Success", "Scheduled sucesfully", "OK");
+        }
+        else
+        {
+            // Display an error message if the response is not successful
+            await App.Current.MainPage.DisplayAlert("Oops", response.ErrorMessage, "OK");
+        }
+
+        // Remove the spinner after the server responds
+        _spinnerClass = "";
+
+        // Notify the component that its state has changed so that it can re-render
+        this.StateHasChanged();
+    }
+
+    [Inject]
+    NavigationManager NavigationManager { get; set; }
+
+    private void ReloadPage()
+    {
+        NavigationManager.NavigateTo(NavigationManager.Uri, forceLoad: true);
+    }
+
+    private string selectedOption = "";
+
+    List<KeyValuePair<string, string>> filteredItems = new List<KeyValuePair<string, string>>();
+    List<KeyValuePair<string, string>> _items = new List<KeyValuePair<string, string>>();
+
+    string selectedItem;
+
+    private List<FetchJobModel> jobs;
+
+    protected override async Task OnInitializedAsync()
+    {
+        jobs = await AppService.GetAllJobs();
+        filteredItems.Clear();
+        foreach (var i in jobs)
+        {
+
+            _items.Add(new KeyValuePair<string, string>(i.JobName, i.JobID));
+
+        }
+        filteredItems = _items;
+
+    }
+
+    private void OnFilterTextChanged(ChangeEventArgs e)
+    {
+        string filterText = e.Value.ToString();
+
+        if (!string.IsNullOrEmpty(filterText))
+        {
+            filteredItems = _items.Where(x => x.Key.Contains(filterText)).ToList();
+        }
+        else
+        {
+            filteredItems = _items;
+        }
+    }
+} 

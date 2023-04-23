@@ -1,0 +1,157 @@
+body {
+    justify-content: center;
+    position: relative;
+}
+
+#top-header, #side-header {
+    max-width: 1200px;
+}
+
+.navbar-nav .nav-item {
+    font-size: large;
+}
+
+    .navbar-nav .nav-item:hover {
+        border-radius: 8%;
+        background-color: rgb(243, 243, 243);
+    }
+
+.navbar-nav .dropdown-menu {
+    position: absolute !important;
+}
+
+@media screen and (min-width: 1200px) {
+    #top-header, #side-header {
+        text-align: center;
+        margin-left: auto;
+        margin-right: auto;
+        justify-content: center;
+    }
+}
+
+.sidenav {
+    height: 100%;
+    width: 22%;
+    position: fixed;
+    z-index: 1;
+    top: 70px;
+    left: 0;
+    background-color: #3dcd58;
+    overflow-x: hidden;
+    padding-top: 20px;
+}
+
+    .sidenav a, .sidebar a {
+        padding: 6px 8px 6px 16px;
+        text-decoration: none;
+        font-size: 20px;
+        color: #ffff;
+        display: block;
+    }
+
+        .sidenav a:hover, .sidebar a:hover {
+            color: rgb(85, 85, 85);
+        }
+
+.tog {
+    display: none;
+}
+
+.offcanvas.show .tog {
+    display: block;
+}
+
+.tog-1 {
+    display: block;
+}
+
+@media screen and (max-width:992px) {
+    .tog-1 {
+        display: none;
+    }
+}
+
+@media screen and (max-width:432px) {
+    #logo {
+        width: 120px !important;
+    }
+
+    .dlms {
+        font-size: large;
+    }
+}
+
+.dropdown-menu[data-bs-popper] {
+    left: -60% !important;
+}
+
+.main-content {
+    margin-left: 25%; /* Same as the width of the sidenav */
+    font-size: 28px; /* Increased text to enable scrolling */
+    padding: 0px 10px;
+}
+
+@media screen and (max-height: 450px) {
+    .sidenav {
+        padding-top: 15px;
+    }
+
+        .sidenav a {
+            font-size: 18px;
+        }
+}
+
+.nav {
+    font-size: large;
+    padding-bottom: 10px;
+}
+
+    .nav li {
+        cursor: pointer;
+        position: relative;
+        text-align: center;
+    }
+
+        .nav li .active:hover {
+            color: black;
+        }
+
+        .nav li.active::after {
+            position: absolute;
+            content: "";
+            height: 4px;
+            width: 100%;
+            background-color: #3dcd58;
+            left: 0;
+            bottom: -7px;
+            border-radius: 20px;
+            animation: appear 0.2s linear;
+        }
+
+.hide {
+    display: none;
+}
+
+.hidebtn {
+    display: none;
+}
+
+@media screen and (max-width:650px) {
+    .hidebtn {
+        display: block;
+    }
+
+    .sidenav {
+        display: none;
+        width: 0;
+    }
+
+    .main-content {
+        margin-left: 5%;
+    }
+
+    .active-nav li a {
+        padding: 8px;
+        font-size: 14px;
+    }
+}
